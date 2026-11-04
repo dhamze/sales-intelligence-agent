@@ -23,7 +23,20 @@ if "settings" not in config.attributes:  # tests configure logging themselves
 
 target_metadata = Base.metadata
 
-_COMPARE_OPTIONS = {"compare_type": True, "compare_server_default": True}
+
+def include_object(
+    obj: object, name: str | None, type_: str, reflected: bool, compare_to: object
+) -> bool:
+    """Leave the job queue's own tables (managed by its vendored schema migration) out of
+    autogenerate and the drift check."""
+    return not (type_ == "table" and name is not None and name.startswith("procrastinate_"))
+
+
+_COMPARE_OPTIONS = {
+    "compare_type": True,
+    "compare_server_default": True,
+    "include_object": include_object,
+}
 
 
 def run_migrations_offline() -> None:

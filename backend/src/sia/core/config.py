@@ -48,6 +48,11 @@ class Settings(BaseSettings):
         default=5.0, gt=0, validation_alias="SIA_DB_CONNECT_TIMEOUT_SECONDS"
     )
 
+    # --- Background worker ---
+    worker_concurrency: int = Field(
+        default=4, ge=1, le=32, validation_alias="SIA_WORKER_CONCURRENCY"
+    )
+
     # --- Authentication & browser security ---
     session_idle_timeout_hours: int = Field(
         default=24 * 7, ge=1, validation_alias="SIA_SESSION_IDLE_TIMEOUT_HOURS"

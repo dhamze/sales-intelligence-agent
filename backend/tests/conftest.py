@@ -5,6 +5,8 @@
 - `client` — an HTTP client that calls `app` in-process (no network, no server).
 """
 
+import asyncio
+import platform
 from collections.abc import AsyncIterator, Callable
 from typing import Any
 
@@ -16,6 +18,15 @@ from sia.core.config import Settings
 from sia.main import create_app
 
 SettingsFactory = Callable[..., Settings]
+
+
+def pytest_asyncio_loop_factories(
+    config: pytest.Config, item: pytest.Item
+) -> dict[str, Callable[[], asyncio.AbstractEventLoop]]:
+    """psycopg (used by the job queue) can't run on Windows' default Proactor event loop."""
+    if platform.system() == "Windows":  # runtime check: both branches stay type-checked
+        return {"selector": asyncio.SelectorEventLoop}
+    return {"default": asyncio.new_event_loop}
 
 
 @pytest.fixture
