@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/table";
 import { companyKeys } from "@/features/companies/api";
 import { contactKeys } from "@/features/contacts/api";
+import { EnrichNewButton } from "@/features/enrichment/enrich-new-button";
 import {
   commitImport,
   FIELD_LABELS,
@@ -286,11 +287,14 @@ function ImportResult({ result }: { result: ImportOut }) {
         title={result.filename}
         description={`Imported ${result.completed_at ? formatDateTime(result.completed_at) : ""}`}
         actions={
-          <Button asChild>
-            <Link to={result.entity_type === "companies" ? "/companies" : "/contacts"}>
-              View {noun}
-            </Link>
-          </Button>
+          <>
+            {result.entity_type === "companies" && result.created_count > 0 && <EnrichNewButton />}
+            <Button asChild>
+              <Link to={result.entity_type === "companies" ? "/companies" : "/contacts"}>
+                View {noun}
+              </Link>
+            </Button>
+          </>
         }
       />
       <Alert tone="success" className="mb-6 flex items-center gap-2">

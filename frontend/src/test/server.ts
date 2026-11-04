@@ -7,7 +7,23 @@ import { setupServer } from "msw/node";
 
 import type { Schemas } from "@/lib/api/client";
 
-export const server = setupServer();
+// Default answers for endpoints most pages touch in passing; tests override them as needed.
+const defaults = [
+  http.get("*/api/enrichment/usage", () =>
+    HttpResponse.json({
+      used_today: 0,
+      daily_limit: 200,
+      remaining_today: 200,
+      cost_today_usd: "0.0000",
+      configured: true,
+    }),
+  ),
+  http.get("*/api/companies/:id/enrichment", () =>
+    HttpResponse.json({ latest_run: null, profile: null }),
+  ),
+];
+
+export const server = setupServer(...defaults);
 
 export const ORG = { id: "00000000-0000-4000-8000-000000000001", name: "Acme Sales" };
 

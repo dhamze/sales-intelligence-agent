@@ -32,6 +32,7 @@ import {
 } from "@/features/companies/api";
 import { CompanyForm } from "@/features/companies/company-form";
 import { FilterMenu } from "@/features/companies/filter-menu";
+import { EnrichNewButton } from "@/features/enrichment/enrich-new-button";
 import { errorMessage } from "@/lib/api/client";
 import { useDebouncedValue } from "@/lib/hooks";
 import { formatDate, formatNumber } from "@/lib/utils";
@@ -61,6 +62,7 @@ function CompaniesPage() {
         description="Your accounts. Search, filter and open a company to see its contacts."
         actions={
           <>
+            <EnrichNewButton />
             <Button asChild variant="outline">
               <Link to="/imports">
                 <FileUp aria-hidden />

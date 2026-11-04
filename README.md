@@ -6,7 +6,7 @@ An AI-assisted sales intelligence platform for B2B sales teams: import an accoun
 each company from public sources, score it against your ideal customer profile with an
 explainable breakdown, and get grounded AI account briefs with cited sources.
 
-> **Status:** Phase 4 (web app) complete — see the [roadmap](docs/architecture.md#roadmap).
+> **Status:** Phase 5 (background jobs + AI enrichment) complete — see the [roadmap](docs/architecture.md#roadmap).
 
 ## Documentation
 
@@ -54,6 +54,10 @@ npm ci
 npm run dev
 ```
 
+To enrich companies with AI, also run the worker (`uv run python -m sia.worker`) and put your
+`ANTHROPIC_API_KEY` in `.env`. Without a key everything else works; enrichment shows as "not
+configured". For an offline demo, set `SIA_LLM_PROVIDER=fake` and `SIA_FETCH_PROVIDER=fake`.
+
 Open <http://localhost:5173> and create an account. The dev server forwards `/api/*` to the
 backend, so the browser talks to a single origin and the session cookie works as in production.
 
@@ -82,6 +86,7 @@ Then open <http://127.0.0.1:8000/docs> for interactive API docs, or
 | Add a dev tool | `uv add --dev <name>` |
 | Frontend: type check / lint / unit tests | `npm run typecheck` · `npm run lint` · `npm test` (in `frontend/`) |
 | Regenerate frontend API types after backend changes | `npm run api:sync` (in `frontend/`) |
+| Live AI quality check (real API + websites; costs money) | `uv run pytest backend/tests/evals --run-live-llm -s` |
 | End-to-end tests (real browser + API + DB) | `npm run build && npm run e2e` (in `frontend/`, database running) |
 
 ## Repository layout

@@ -8,6 +8,17 @@ import { defineConfig, devices } from "@playwright/test";
 const CI = Boolean(process.env.CI);
 const WEB_URL = "http://localhost:4173";
 
+// The API and worker use the offline fake website + fake AI: deterministic, free, no API key.
+const BACKEND_ENV: Record<string, string> = {
+  ...Object.fromEntries(
+    Object.entries(process.env).filter(
+      (entry): entry is [string, string] => entry[1] !== undefined,
+    ),
+  ),
+  SIA_LLM_PROVIDER: "fake",
+  SIA_FETCH_PROVIDER: "fake",
+};
+
 export default defineConfig({
   testDir: "./e2e",
   timeout: 60_000,
@@ -26,7 +37,16 @@ export default defineConfig({
       command: "uv run uvicorn sia.main:create_app --factory --port 8000",
       cwd: "..",
       url: "http://127.0.0.1:8000/health/ready",
+      env: BACKEND_ENV,
       reuseExistingServer: !CI,
+      timeout: 60_000,
+    },
+    {
+      // Background jobs (enrichment). Ready once it logs that it started.
+      command: "uv run python -m sia.worker",
+      cwd: "..",
+      env: BACKEND_ENV,
+      wait: { stdout: /worker_starting/ },
       timeout: 60_000,
     },
     {

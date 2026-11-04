@@ -19,6 +19,7 @@ import { hasRole, meQuery } from "@/features/auth/api";
 import { companyKeys, companyQuery, deleteCompany } from "@/features/companies/api";
 import { CompanyForm } from "@/features/companies/company-form";
 import { ContactsTable } from "@/features/contacts/contacts-table";
+import { AiProfileCard } from "@/features/enrichment/ai-profile-card";
 import { ContactFormDialog } from "@/features/contacts/contact-form";
 import { ApiError, errorMessage } from "@/lib/api/client";
 import { formatDateTime, formatNumber, formatValue } from "@/lib/utils";
@@ -188,6 +189,10 @@ function CompanyPage() {
             )}
           </CardContent>
         </Card>
+      </div>
+
+      <div className="mt-6">
+        <AiProfileCard companyId={c.id} />
       </div>
 
       <section className="mt-8">
