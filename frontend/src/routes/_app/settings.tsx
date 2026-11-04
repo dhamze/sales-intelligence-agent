@@ -38,6 +38,7 @@ import {
   type Member,
 } from "@/features/organization/api";
 import { assignableRoles, canRemove } from "@/features/organization/policy";
+import { AiUsageCard } from "@/features/insights/ai-usage-card";
 import { IcpBuilder } from "@/features/scoring/icp-builder";
 import { ApiError, errorMessage } from "@/lib/api/client";
 import { handleSubmitError } from "@/lib/forms";
@@ -60,6 +61,7 @@ function SettingsPage() {
         <OrganizationCard me={me} />
         <IcpBuilder canEdit={hasRole(me, "admin")} />
         <MembersCard me={me} />
+        <AiUsageCard />
       </div>
     </>
   );

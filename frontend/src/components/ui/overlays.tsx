@@ -5,6 +5,7 @@ import {
   AlertDialog as AlertDialogPrimitive,
   Dialog as DialogPrimitive,
   DropdownMenu as Menu,
+  Popover as PopoverPrimitive,
 } from "radix-ui";
 import type { ComponentProps, ReactNode } from "react";
 
@@ -174,5 +175,28 @@ export function FormDialog({
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
+  );
+}
+
+export const Popover = PopoverPrimitive.Root;
+export const PopoverTrigger = PopoverPrimitive.Trigger;
+
+export function PopoverContent({
+  className,
+  sideOffset = 6,
+  ...props
+}: ComponentProps<typeof PopoverPrimitive.Content>) {
+  return (
+    <PopoverPrimitive.Portal>
+      <PopoverPrimitive.Content
+        sideOffset={sideOffset}
+        collisionPadding={16}
+        className={cn(
+          "z-50 w-80 max-w-[calc(100vw-2rem)] rounded-lg border bg-card p-3 text-sm text-card-foreground shadow-lg",
+          className,
+        )}
+        {...props}
+      />
+    </PopoverPrimitive.Portal>
   );
 }

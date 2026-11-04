@@ -24,6 +24,18 @@ const defaults = [
   // No ideal customer profile yet (scoring off).
   http.get("*/api/icp", () => HttpResponse.json(null)),
   http.get("*/api/companies/:id/score", () => HttpResponse.json(null)),
+  // No brief yet; AI configured, nothing spent.
+  http.get("*/api/companies/:id/brief", () => HttpResponse.json({ latest_run: null, brief: null })),
+  http.get("*/api/ai/usage", () =>
+    HttpResponse.json({
+      cost_today_usd: "0.0000",
+      cost_month_usd: "0.0000",
+      month_by_purpose: [],
+      briefs_today: 0,
+      brief_daily_limit: 50,
+      configured: true,
+    }),
+  ),
 ];
 
 export const server = setupServer(...defaults);

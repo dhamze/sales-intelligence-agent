@@ -29,9 +29,10 @@ def _sources(content: str) -> dict[str, str]:
 
 
 def _opening(text: str, words: int = 12) -> str:
-    """The first few words of a text: a quote that certainly occurs in it."""
+    """The first sentence (at most `words` words) of a text: a quote that certainly occurs in it."""
     first_line = text.strip().splitlines()[0] if text.strip() else ""
-    return " ".join(first_line.split()[:words])
+    sentence = first_line.split(". ")[0]
+    return " ".join(sentence.split()[:words])
 
 
 def fake_brief(_system: str, content: str, _output_type: type[Any]) -> BaseModel:
@@ -50,9 +51,9 @@ def fake_brief(_system: str, content: str, _output_type: type[Any]) -> BaseModel
         [claim("The company's ICP fit is summarised in the score.", "S")] if "S" in sources else []
     )
     return BriefOutput(
-        summary=[claim(f"Summary based on {main}: {_opening(sources[main], 20)}", main)],
+        summary=[claim(f"{_opening(sources[main], 30).rstrip('.')}.", main)],
         fit=fit,
-        key_facts=[claim(f"From {sid}: {_opening(sources[sid], 20)}", sid) for sid in sources][:6],
+        key_facts=[claim(f"{_opening(sources[sid], 30).rstrip('.')}.", sid) for sid in sources][:6],
         priorities=[claim("They likely want to reduce manual work.", main)],
         outreach=Outreach(
             angle="Lead with how teams like theirs cut manual reporting work.",

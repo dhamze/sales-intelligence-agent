@@ -20,6 +20,7 @@ import { companyKeys, companyQuery, deleteCompany } from "@/features/companies/a
 import { CompanyForm } from "@/features/companies/company-form";
 import { ContactsTable } from "@/features/contacts/contacts-table";
 import { AiProfileCard } from "@/features/enrichment/ai-profile-card";
+import { BriefCard } from "@/features/insights/brief-card";
 import { IcpFitCard } from "@/features/scoring/icp-fit-card";
 import { TierBadge } from "@/features/scoring/tier-badge";
 import { ContactFormDialog } from "@/features/contacts/contact-form";
@@ -196,6 +197,10 @@ function CompanyPage() {
             )}
           </CardContent>
         </Card>
+      </div>
+
+      <div className="mt-6">
+        <BriefCard companyId={c.id} />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
