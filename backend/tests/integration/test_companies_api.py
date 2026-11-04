@@ -45,9 +45,10 @@ async def test_create_company(alice: Actor) -> None:
 
 
 async def test_blank_strings_are_stored_as_null(alice: Actor) -> None:
-    body = (await create(alice, industry="  ", city="", domain="")).json()
+    body = (await create(alice, industry="  ", city="", domain="", employee_count="")).json()
 
     assert (body["industry"], body["city"], body["domain"]) == (None, None, None)
+    assert body["employee_count"] is None  # regression: blank number used to be rejected
 
 
 @pytest.mark.parametrize("variant", ["INITECH.com", "https://www.initech.com", "shop.initech.com"])

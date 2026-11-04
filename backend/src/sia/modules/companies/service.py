@@ -132,3 +132,11 @@ async def delete_company(db: AsyncSession, tenant: TenantContext, company_id: uu
     await db.delete(company)  # contacts keep existing; their company link is cleared
     await db.commit()
     logger.info("company_deleted", company_id=str(company_id))
+
+
+async def import_companies(
+    db: AsyncSession, tenant: TenantContext, records: list[dict[str, Any]]
+) -> tuple[int, int]:
+    """Bulk insert/merge validated records (no commit: the caller owns the transaction).
+    Returns (created, updated)."""
+    return await repository.bulk_upsert(db, tenant.organization_id, tenant.user.id, records)

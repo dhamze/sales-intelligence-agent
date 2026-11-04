@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import (
     BaseModel,
@@ -13,7 +13,12 @@ from pydantic import (
 )
 
 from sia.core.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
-from sia.core.schemas import OptionalLongText, OptionalShortText, OptionalUnboundedInput
+from sia.core.schemas import (
+    BlankToNone,
+    OptionalLongText,
+    OptionalShortText,
+    OptionalUnboundedInput,
+)
 from sia.modules.companies.domains import InvalidDomainError, normalize_domain, normalize_url
 from sia.modules.companies.models import (
     COMPANY_NAME_MAX,
@@ -24,6 +29,8 @@ MAX_ATTRIBUTES = 100
 MAX_EMPLOYEES = 10_000_000
 
 
+# Range applies to the int member only (a constraint on `int | None` would also hit None).
+OptionalEmployeeCount = Annotated[Annotated[int, Field(ge=0, le=MAX_EMPLOYEES)] | None, BlankToNone]
 AttributeValue = str | int | float | bool | None
 
 
@@ -35,7 +42,7 @@ class _CompanyFields(_Request):
     domain: OptionalUnboundedInput = None
     website: OptionalUnboundedInput = None
     industry: OptionalShortText = None
-    employee_count: int | None = Field(default=None, ge=0, le=MAX_EMPLOYEES)
+    employee_count: OptionalEmployeeCount = None
     country: OptionalShortText = None
     city: OptionalShortText = None
     description: OptionalLongText = None

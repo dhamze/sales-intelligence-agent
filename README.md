@@ -6,7 +6,7 @@ An AI-assisted sales intelligence platform for B2B sales teams: import an accoun
 each company from public sources, score it against your ideal customer profile with an
 explainable breakdown, and get grounded AI account briefs with cited sources.
 
-> **Status:** Phase 2 (identity & multi-tenancy) complete — see the [roadmap](docs/architecture.md#roadmap).
+> **Status:** Phase 3 (companies, contacts, CSV import, search) complete — see the [roadmap](docs/architecture.md#roadmap).
 
 ## Documentation
 
@@ -84,6 +84,7 @@ backend/
       identity/     Users, organisations, memberships, sessions, auth API
       companies/    Companies (accounts), domain normalisation, search
       contacts/     Contacts linked to companies
+      imports/      CSV import: parse, map, preview, merge
     scripts/        Developer scripts (seed data)
   migrations/       Alembic database migrations
   tests/unit/       Fast tests, no database

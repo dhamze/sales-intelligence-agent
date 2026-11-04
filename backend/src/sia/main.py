@@ -18,13 +18,21 @@ from sia.core.config import Settings, get_settings
 from sia.core.db import create_engine, create_sessionmaker
 from sia.core.errors import register_error_handlers
 from sia.core.logging import configure_logging
-from sia.core.middleware import OriginCheckMiddleware, RequestContextMiddleware
+from sia.core.middleware import (
+    BodySizeLimitMiddleware,
+    OriginCheckMiddleware,
+    RequestContextMiddleware,
+)
 from sia.modules.companies.router import router as companies_router
 from sia.modules.contacts.router import router as contacts_router
 from sia.modules.health.router import router as health_router
 from sia.modules.identity.router import auth_router, org_router
+from sia.modules.imports.router import router as imports_router
 
 logger = structlog.get_logger(__name__)
+
+# Largest accepted request body: CSV uploads (5 MB) plus multipart overhead.
+MAX_REQUEST_BYTES = 6 * 1024 * 1024
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -57,6 +65,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     register_error_handlers(app)
     # Middleware added last runs first: RequestContext wraps everything, so even requests
     # rejected by the origin check get a request ID and an access log line.
+    app.add_middleware(BodySizeLimitMiddleware, max_bytes=MAX_REQUEST_BYTES)
     app.add_middleware(OriginCheckMiddleware, allowed_origins=settings.allowed_origins)
     app.add_middleware(RequestContextMiddleware)
 
@@ -65,5 +74,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(org_router)
     app.include_router(companies_router)
     app.include_router(contacts_router)
+    app.include_router(imports_router)
 
     return app

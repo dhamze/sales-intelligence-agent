@@ -5,12 +5,25 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import ColumnElement, Float, cast, func, literal, or_, select
+from sqlalchemy import (
+    Boolean,
+    ColumnElement,
+    Float,
+    and_,
+    cast,
+    func,
+    literal,
+    literal_column,
+    or_,
+    select,
+)
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from sia.core.pagination import SortSpec, keyset_condition, order_by
 from sia.core.search import escape_like, use_search_threshold
-from sia.modules.companies.models import Company
+from sia.modules.companies.models import Company, RecordSource
 from sia.modules.companies.schemas import CompanyListParams
 
 
@@ -122,3 +135,62 @@ async def ids_by_domain(
         )
     )
     return {domain: company_id for domain, company_id in rows if domain}
+
+
+# --- Bulk import -------------------------------------------------------------------------------
+
+# Fields an import may fill in on an existing company. Never overwrites a value that exists.
+IMPORT_FILL_FIELDS = ("website", "industry", "employee_count", "country", "city", "description")
+_IMPORT_COLUMNS = ("id", "name", "domain", *IMPORT_FILL_FIELDS, "attributes")
+_BATCH = 500
+
+
+async def bulk_upsert(
+    db: AsyncSession,
+    organization_id: uuid.UUID,
+    created_by: uuid.UUID,
+    records: list[dict[str, Any]],
+) -> tuple[int, int]:
+    """Insert new companies; for an existing domain, fill only its EMPTY fields and add
+    attributes it doesn't have. Returns (created, updated). Rows that would change nothing are
+    neither (they count as unchanged)."""
+    created = updated = 0
+    base = {
+        "organization_id": organization_id,
+        "source": RecordSource.IMPORT,
+        "created_by_user_id": created_by,
+    }
+    for start in range(0, len(records), _BATCH):
+        rows = [
+            {**base, **{col: r.get(col) for col in _IMPORT_COLUMNS}}
+            for r in records[start : start + _BATCH]
+        ]
+        for row in rows:
+            row["attributes"] = row["attributes"] or {}
+        insert_rows = pg_insert(Company).values(rows)
+        new = insert_rows.excluded
+        merged_attributes = new.attributes.op("||", return_type=JSONB)(Company.attributes)
+        upsert = insert_rows.on_conflict_do_update(
+            constraint="uq_companies_organization_id_domain",
+            set_={
+                **{
+                    f: func.coalesce(getattr(Company, f), getattr(new, f))
+                    for f in IMPORT_FILL_FIELDS
+                },
+                "attributes": merged_attributes,  # existing keys win
+                "updated_at": func.now(),
+            },
+            where=or_(
+                *[
+                    and_(getattr(Company, f).is_(None), getattr(new, f).is_not(None))
+                    for f in IMPORT_FILL_FIELDS
+                ],
+                merged_attributes != Company.attributes,
+            ),
+        ).returning(literal_column("xmax = 0", Boolean))  # true = inserted, false = updated
+        for (inserted,) in await db.execute(upsert):
+            if inserted:
+                created += 1
+            else:
+                updated += 1
+    return created, updated

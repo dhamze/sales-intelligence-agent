@@ -162,3 +162,15 @@ async def delete_contact(db: AsyncSession, tenant: TenantContext, contact_id: uu
     await db.delete(contact)
     await db.commit()
     logger.info("contact_deleted", contact_id=str(contact_id))
+
+
+async def existing_emails(db: AsyncSession, tenant: TenantContext, emails: set[str]) -> set[str]:
+    return await repository.existing_emails(db, tenant.organization_id, emails)
+
+
+async def import_contacts(
+    db: AsyncSession, tenant: TenantContext, records: list[dict[str, Any]]
+) -> tuple[int, int]:
+    """Bulk insert/merge validated records (no commit: the caller owns the transaction).
+    Returns (created, updated)."""
+    return await repository.bulk_upsert(db, tenant.organization_id, tenant.user.id, records)

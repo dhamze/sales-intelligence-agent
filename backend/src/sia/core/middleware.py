@@ -113,3 +113,61 @@ class OriginCheckMiddleware:
         origin = origin.rstrip("/").lower()
         own_origin = f"{scope.get('scheme', 'http')}://{headers.get('host', '')}".lower()
         return origin in self.allowed_origins or origin == own_origin
+
+
+class _BodyTooLargeError(Exception):
+    pass
+
+
+class BodySizeLimitMiddleware:
+    """Reject request bodies over `max_bytes` before the application reads them.
+
+    Checks the declared Content-Length first (cheap, covers browsers), and also counts the bytes
+    actually received, in case the header is missing or lies. Without this, a multipart upload
+    is fully parsed (and spooled to disk) before any route-level size check runs.
+    """
+
+    def __init__(self, app: ASGIApp, max_bytes: int) -> None:
+        self.app = app
+        self.max_bytes = max_bytes
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        for name, value in scope["headers"]:
+            if name == b"content-length" and value.isdigit() and int(value) > self.max_bytes:
+                await self._reject(scope, receive, send)
+                return
+
+        received = 0
+        response_started = False
+
+        async def limited_receive() -> Message:
+            nonlocal received
+            message = await receive()
+            if message["type"] == "http.request":
+                received += len(message.get("body", b""))
+                if received > self.max_bytes:
+                    raise _BodyTooLargeError
+            return message
+
+        async def tracking_send(message: Message) -> None:
+            nonlocal response_started
+            if message["type"] == "http.response.start":
+                response_started = True
+            await send(message)
+
+        try:
+            await self.app(scope, limited_receive, tracking_send)
+        except _BodyTooLargeError:
+            if response_started:
+                raise
+            await self._reject(scope, receive, send)
+
+    async def _reject(self, scope: Scope, receive: Receive, send: Send) -> None:
+        response = error_response(
+            413, "payload_too_large", f"Request body exceeds {self.max_bytes // 1024 // 1024} MB."
+        )
+        await response(scope, receive, send)
