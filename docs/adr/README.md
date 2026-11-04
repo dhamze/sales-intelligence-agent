@@ -17,3 +17,4 @@ supersedes the old one.
 | [0009](0009-ssrf-safe-fetching.md) | SSRF-safe fetching of user-supplied websites | Accepted |
 | [0010](0010-grounded-extraction.md) | Grounded AI extraction with verified evidence | Accepted |
 | [0011](0011-explainable-icp-scoring.md) | Explainable rules-based ICP scoring | Accepted |
+| [0012](0012-cited-account-briefs.md) | Cited account briefs and how they are evaluated | Accepted |
