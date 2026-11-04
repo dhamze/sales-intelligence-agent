@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+    "/ai/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ai Usage
+         * @description Estimated AI spend today and this month, by purpose.
+         */
+        get: operations["ai_usage_ai_usage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/login": {
         parameters: {
             query?: never;
@@ -141,6 +161,30 @@ export interface paths {
         head?: never;
         /** Update Company */
         patch: operations["update_company_companies__company_id__patch"];
+        trace?: never;
+    };
+    "/companies/{company_id}/brief": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Company Brief
+         * @description The latest verified brief (with whether it's out of date) and the latest run.
+         */
+        get: operations["company_brief_companies__company_id__brief_get"];
+        put?: never;
+        /**
+         * Request Brief
+         * @description Queue (or return the already-active) brief run for one company.
+         */
+        post: operations["request_brief_companies__company_id__brief_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/companies/{company_id}/enrich": {
@@ -503,6 +547,24 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AIUsageOut
+         * @description AI spend of the organisation (estimates; the Anthropic bill is authoritative).
+         */
+        AIUsageOut: {
+            /** Brief Daily Limit */
+            brief_daily_limit: number;
+            /** Briefs Today */
+            briefs_today: number;
+            /** Configured */
+            configured: boolean;
+            /** Cost Month Usd */
+            cost_month_usd: string;
+            /** Cost Today Usd */
+            cost_today_usd: string;
+            /** Month By Purpose */
+            month_by_purpose: components["schemas"]["PurposeUsage"][];
+        };
         /** Body_upload_imports_post */
         Body_upload_imports_post: {
             entity_type: components["schemas"]["EntityType"];
@@ -511,6 +573,74 @@ export interface components {
              * @description CSV file (max 5 MB, 10,000 rows)
              */
             file: string;
+        };
+        /** BriefOut */
+        BriefOut: {
+            /** Claims Dropped */
+            claims_dropped: number;
+            /** Claims Kept */
+            claims_kept: number;
+            /** Fit */
+            fit: components["schemas"]["ClaimOut"][];
+            /** Gaps */
+            gaps: string[];
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Key Facts */
+            key_facts: components["schemas"]["ClaimOut"][];
+            /** Model */
+            model: string;
+            outreach: components["schemas"]["OutreachOut"] | null;
+            /** Priorities */
+            priorities: components["schemas"]["ClaimOut"][];
+            /** Sources */
+            sources: components["schemas"]["BriefSourceOut"][];
+            /** Stale */
+            stale: boolean;
+            /** Summary */
+            summary: components["schemas"]["ClaimOut"][];
+        };
+        /** BriefRunOut */
+        BriefRunOut: {
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Failure Reason */
+            failure_reason: string | null;
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Started At */
+            started_at: string | null;
+            status: components["schemas"]["RunStatus"];
+        };
+        /** BriefSourceOut */
+        BriefSourceOut: {
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "website" | "record" | "score" | "contacts";
+            /** Title */
+            title: string;
+            /** Url */
+            url: string | null;
         };
         /** BusinessModelCriterion */
         BusinessModelCriterion: {
@@ -533,6 +663,25 @@ export interface components {
              * @default false
              */
             must_have: boolean;
+        };
+        /** CitationOut */
+        CitationOut: {
+            /** Quote */
+            quote: string;
+            /** Source Id */
+            source_id: string;
+        };
+        /** ClaimOut */
+        ClaimOut: {
+            /** Citations */
+            citations: components["schemas"]["CitationOut"][];
+            /** Text */
+            text: string;
+        };
+        /** CompanyBriefOut */
+        CompanyBriefOut: {
+            brief: components["schemas"]["BriefOut"] | null;
+            latest_run: components["schemas"]["BriefRunOut"] | null;
         };
         /** CompanyCreate */
         CompanyCreate: {
@@ -1179,6 +1328,17 @@ export interface components {
             /** Name */
             name: string;
         };
+        /** OutreachOut */
+        OutreachOut: {
+            /** Angle */
+            angle: string;
+            /** Citations */
+            citations: components["schemas"]["CitationOut"][];
+            /** Discovery Questions */
+            discovery_questions: string[];
+            /** Opening Line */
+            opening_line: string;
+        };
         /** Page[CompanyOut] */
         Page_CompanyOut_: {
             /** Items */
@@ -1216,6 +1376,15 @@ export interface components {
              * @enum {string}
              */
             tier: "A" | "B" | "C" | "D";
+        };
+        /** PurposeUsage */
+        PurposeUsage: {
+            /** Calls */
+            calls: number;
+            /** Cost Usd */
+            cost_usd: string;
+            /** Purpose */
+            purpose: string;
         };
         /** ReadinessResponse */
         ReadinessResponse: {
@@ -1383,6 +1552,26 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    ai_usage_ai_usage_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIUsageOut"];
+                };
+            };
+        };
+    };
     login_auth_login_post: {
         parameters: {
             query?: never;
@@ -1700,6 +1889,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CompanyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    company_brief_companies__company_id__brief_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                company_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyBriefOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_brief_companies__company_id__brief_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                company_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BriefRunOut"];
                 };
             };
             /** @description Validation Error */

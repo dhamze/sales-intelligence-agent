@@ -69,6 +69,11 @@ class Settings(BaseSettings):
         default=200, ge=0, validation_alias="SIA_ENRICHMENT_DAILY_LIMIT"
     )
 
+    # --- AI account briefs (same provider and API key as enrichment) ---
+    brief_model: str = Field(default="claude-opus-5-5", validation_alias="SIA_BRIEF_MODEL")
+    brief_effort: Effort = Field(default="medium", validation_alias="SIA_BRIEF_EFFORT")
+    brief_daily_limit: int = Field(default=50, ge=0, validation_alias="SIA_BRIEF_DAILY_LIMIT")
+
     # --- Authentication & browser security ---
     session_idle_timeout_hours: int = Field(
         default=24 * 7, ge=1, validation_alias="SIA_SESSION_IDLE_TIMEOUT_HOURS"

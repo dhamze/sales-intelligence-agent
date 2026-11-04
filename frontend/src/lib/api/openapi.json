@@ -1,6 +1,48 @@
 {
   "components": {
     "schemas": {
+      "AIUsageOut": {
+        "description": "AI spend of the organisation (estimates; the Anthropic bill is authoritative).",
+        "properties": {
+          "brief_daily_limit": {
+            "title": "Brief Daily Limit",
+            "type": "integer"
+          },
+          "briefs_today": {
+            "title": "Briefs Today",
+            "type": "integer"
+          },
+          "configured": {
+            "title": "Configured",
+            "type": "boolean"
+          },
+          "cost_month_usd": {
+            "title": "Cost Month Usd",
+            "type": "string"
+          },
+          "cost_today_usd": {
+            "title": "Cost Today Usd",
+            "type": "string"
+          },
+          "month_by_purpose": {
+            "items": {
+              "$ref": "#/components/schemas/PurposeUsage"
+            },
+            "title": "Month By Purpose",
+            "type": "array"
+          }
+        },
+        "required": [
+          "cost_today_usd",
+          "cost_month_usd",
+          "month_by_purpose",
+          "briefs_today",
+          "brief_daily_limit",
+          "configured"
+        ],
+        "title": "AIUsageOut",
+        "type": "object"
+      },
       "Body_upload_imports_post": {
         "properties": {
           "entity_type": {
@@ -18,6 +60,208 @@
           "entity_type"
         ],
         "title": "Body_upload_imports_post",
+        "type": "object"
+      },
+      "BriefOut": {
+        "properties": {
+          "claims_dropped": {
+            "title": "Claims Dropped",
+            "type": "integer"
+          },
+          "claims_kept": {
+            "title": "Claims Kept",
+            "type": "integer"
+          },
+          "fit": {
+            "items": {
+              "$ref": "#/components/schemas/ClaimOut"
+            },
+            "title": "Fit",
+            "type": "array"
+          },
+          "gaps": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Gaps",
+            "type": "array"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "key_facts": {
+            "items": {
+              "$ref": "#/components/schemas/ClaimOut"
+            },
+            "title": "Key Facts",
+            "type": "array"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "outreach": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OutreachOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "priorities": {
+            "items": {
+              "$ref": "#/components/schemas/ClaimOut"
+            },
+            "title": "Priorities",
+            "type": "array"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/BriefSourceOut"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "stale": {
+            "title": "Stale",
+            "type": "boolean"
+          },
+          "summary": {
+            "items": {
+              "$ref": "#/components/schemas/ClaimOut"
+            },
+            "title": "Summary",
+            "type": "array"
+          }
+        },
+        "required": [
+          "summary",
+          "fit",
+          "key_facts",
+          "priorities",
+          "outreach",
+          "gaps",
+          "sources",
+          "claims_kept",
+          "claims_dropped",
+          "model",
+          "generated_at",
+          "stale"
+        ],
+        "title": "BriefOut",
+        "type": "object"
+      },
+      "BriefRunOut": {
+        "properties": {
+          "company_id": {
+            "format": "uuid",
+            "title": "Company Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "failure_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Reason"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RunStatus"
+          }
+        },
+        "required": [
+          "id",
+          "company_id",
+          "status",
+          "failure_reason",
+          "created_at",
+          "started_at",
+          "finished_at"
+        ],
+        "title": "BriefRunOut",
+        "type": "object"
+      },
+      "BriefSourceOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "website",
+              "record",
+              "score",
+              "contacts"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "url"
+        ],
+        "title": "BriefSourceOut",
         "type": "object"
       },
       "BusinessModelCriterion": {
@@ -63,6 +307,75 @@
           "models"
         ],
         "title": "BusinessModelCriterion",
+        "type": "object"
+      },
+      "CitationOut": {
+        "properties": {
+          "quote": {
+            "title": "Quote",
+            "type": "string"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_id",
+          "quote"
+        ],
+        "title": "CitationOut",
+        "type": "object"
+      },
+      "ClaimOut": {
+        "properties": {
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/CitationOut"
+            },
+            "title": "Citations",
+            "type": "array"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "citations"
+        ],
+        "title": "ClaimOut",
+        "type": "object"
+      },
+      "CompanyBriefOut": {
+        "properties": {
+          "brief": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BriefOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "latest_run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BriefRunOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "latest_run",
+          "brief"
+        ],
+        "title": "CompanyBriefOut",
         "type": "object"
       },
       "CompanyCreate": {
@@ -1870,6 +2183,40 @@
         "title": "OrganizationOut",
         "type": "object"
       },
+      "OutreachOut": {
+        "properties": {
+          "angle": {
+            "title": "Angle",
+            "type": "string"
+          },
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/CitationOut"
+            },
+            "title": "Citations",
+            "type": "array"
+          },
+          "discovery_questions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Discovery Questions",
+            "type": "array"
+          },
+          "opening_line": {
+            "title": "Opening Line",
+            "type": "string"
+          }
+        },
+        "required": [
+          "angle",
+          "opening_line",
+          "discovery_questions",
+          "citations"
+        ],
+        "title": "OutreachOut",
+        "type": "object"
+      },
       "Page_CompanyOut_": {
         "properties": {
           "items": {
@@ -1984,6 +2331,29 @@
           "tier"
         ],
         "title": "PreviewCompany",
+        "type": "object"
+      },
+      "PurposeUsage": {
+        "properties": {
+          "calls": {
+            "title": "Calls",
+            "type": "integer"
+          },
+          "cost_usd": {
+            "title": "Cost Usd",
+            "type": "string"
+          },
+          "purpose": {
+            "title": "Purpose",
+            "type": "string"
+          }
+        },
+        "required": [
+          "purpose",
+          "calls",
+          "cost_usd"
+        ],
+        "title": "PurposeUsage",
         "type": "object"
       },
       "ReadinessResponse": {
@@ -2333,6 +2703,28 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/ai/usage": {
+      "get": {
+        "description": "Estimated AI spend today and this month, by purpose.",
+        "operationId": "ai_usage_ai_usage_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIUsageOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Ai Usage",
+        "tags": [
+          "insights"
+        ]
+      }
+    },
     "/auth/login": {
       "post": {
         "operationId": "login_auth_login_post",
@@ -2916,6 +3308,92 @@
         "summary": "Update Company",
         "tags": [
           "companies"
+        ]
+      }
+    },
+    "/companies/{company_id}/brief": {
+      "get": {
+        "description": "The latest verified brief (with whether it's out of date) and the latest run.",
+        "operationId": "company_brief_companies__company_id__brief_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "company_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Company Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyBriefOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Company Brief",
+        "tags": [
+          "insights"
+        ]
+      },
+      "post": {
+        "description": "Queue (or return the already-active) brief run for one company.",
+        "operationId": "request_brief_companies__company_id__brief_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "company_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Company Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BriefRunOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Request Brief",
+        "tags": [
+          "insights"
         ]
       }
     },

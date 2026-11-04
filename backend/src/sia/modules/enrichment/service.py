@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from sia.ai.client import LLMClient, Outcome, StructuredResult
 from sia.ai.models import AIGeneration
+from sia.ai.usage import log_generation
 from sia.core.config import Effort, Settings
 from sia.core.errors import NotFoundError, TooManyRequestsError
 from sia.core.jobs import enqueue
@@ -217,24 +218,13 @@ def _log_generation(
     company_id: uuid.UUID,
     result: StructuredResult[ExtractedProfile],
 ) -> None:
-    db.add(
-        AIGeneration(
-            organization_id=organization_id,
-            purpose=PURPOSE,
-            subject_id=company_id,
-            model=result.model,
-            prompt_version=PROMPT_VERSION,
-            outcome=result.outcome,
-            input_tokens=result.input_tokens,
-            output_tokens=result.output_tokens,
-            cache_read_tokens=result.cache_read_tokens,
-            cache_write_tokens=result.cache_write_tokens,
-            cost_usd=result.cost_usd,
-            latency_ms=result.latency_ms,
-            request_id=result.request_id,
-            stop_reason=result.stop_reason,
-            error=(result.error or "")[:500] or None,
-        )
+    log_generation(
+        db,
+        organization_id=organization_id,
+        purpose=PURPOSE,
+        subject_id=company_id,
+        prompt_version=PROMPT_VERSION,
+        result=result,
     )
 
 
