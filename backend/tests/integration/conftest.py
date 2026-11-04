@@ -14,9 +14,10 @@ before every test.
 """
 
 import asyncio
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator, Callable, Iterator
 from pathlib import Path
 
+import httpx
 import pytest
 from alembic import command
 from alembic.config import Config
@@ -124,3 +125,22 @@ async def engine(test_settings: Settings) -> AsyncIterator[AsyncEngine]:
 def app(test_settings: Settings) -> FastAPI:
     """Overrides the unit-test app: this one talks to the real test database."""
     return create_app(test_settings)
+
+
+ClientFactory = Callable[[], httpx.AsyncClient]
+
+
+@pytest.fixture
+async def make_client(app: FastAPI, client: httpx.AsyncClient) -> AsyncIterator[ClientFactory]:
+    """Extra independent HTTP clients (separate cookie jars = separate browsers) for the same
+    app. Depends on `client` so the app's lifespan is already running."""
+    clients: list[httpx.AsyncClient] = []
+
+    def factory() -> httpx.AsyncClient:
+        new = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test")
+        clients.append(new)
+        return new
+
+    yield factory
+    for c in clients:
+        await c.aclose()

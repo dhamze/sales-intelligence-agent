@@ -48,6 +48,40 @@ class Settings(BaseSettings):
         default=5.0, gt=0, validation_alias="SIA_DB_CONNECT_TIMEOUT_SECONDS"
     )
 
+    # --- Authentication & browser security ---
+    session_idle_timeout_hours: int = Field(
+        default=24 * 7, ge=1, validation_alias="SIA_SESSION_IDLE_TIMEOUT_HOURS"
+    )
+    session_absolute_timeout_hours: int = Field(
+        default=24 * 30, ge=1, validation_alias="SIA_SESSION_ABSOLUTE_TIMEOUT_HOURS"
+    )
+    # Browser origins allowed to make state-changing requests (CSRF protection).
+    allowed_origins: list[str] = Field(
+        default=["http://localhost:5173", "http://127.0.0.1:5173"],  # Vite dev server
+        validation_alias="SIA_ALLOWED_ORIGINS",
+    )
+    # Brute-force protection: failed logins allowed per window before login is refused.
+    login_max_failures_per_email: int = Field(
+        default=5, ge=1, validation_alias="SIA_LOGIN_MAX_FAILURES_PER_EMAIL"
+    )
+    login_max_failures_per_ip: int = Field(
+        default=20, ge=1, validation_alias="SIA_LOGIN_MAX_FAILURES_PER_IP"
+    )
+    login_failure_window_minutes: int = Field(
+        default=15, ge=1, validation_alias="SIA_LOGIN_FAILURE_WINDOW_MINUTES"
+    )
+
+    @property
+    def session_cookie_name(self) -> str:
+        # The __Host- prefix makes browsers refuse the cookie unless it is Secure, has Path=/
+        # and no Domain, so it cannot be set or overridden by another subdomain.
+        return "__Host-sia_session" if self.is_production else "sia_session"
+
+    @property
+    def session_cookie_secure(self) -> bool:
+        # Local development runs on plain http://, where browsers drop Secure cookies.
+        return self.is_production
+
     @property
     def database_url(self) -> URL:
         """Runtime connection, as the restricted `sia_app` role (subject to Row-Level Security)."""

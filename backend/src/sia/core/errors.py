@@ -34,6 +34,25 @@ class AppError(Exception):
         self.details = details
 
 
+class UnauthorizedError(AppError):
+    """Not authenticated (missing, invalid or expired credentials)."""
+
+    status_code = 401
+    code = "unauthenticated"
+
+
+class ForbiddenError(AppError):
+    """Authenticated, but not allowed to do this."""
+
+    status_code = 403
+    code = "forbidden"
+
+
+class TooManyRequestsError(AppError):
+    status_code = 429
+    code = "too_many_requests"
+
+
 class NotFoundError(AppError):
     status_code = 404
     code = "not_found"

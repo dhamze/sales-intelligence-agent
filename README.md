@@ -6,7 +6,7 @@ An AI-assisted sales intelligence platform for B2B sales teams: import an accoun
 each company from public sources, score it against your ideal customer profile with an
 explainable breakdown, and get grounded AI account briefs with cited sources.
 
-> **Status:** Phase 1 (backend skeleton) complete — see the [roadmap](docs/architecture.md#roadmap).
+> **Status:** Phase 2 (identity & multi-tenancy) complete — see the [roadmap](docs/architecture.md#roadmap).
 
 ## Documentation
 
@@ -52,6 +52,10 @@ uv run uvicorn sia.main:create_app --factory --reload
 Then open <http://127.0.0.1:8000/docs> for interactive API docs, or
 <http://127.0.0.1:8000/health/ready> to confirm the database connection.
 
+> Already had the database running before Phase 2? Create the restricted app role once:
+> `docker compose up -d db` (picks up the new setting), then
+> `docker compose exec db bash /docker-entrypoint-initdb.d/02-create-app-role.sh`
+
 ## Everyday commands
 
 | Task | Command |
@@ -74,7 +78,9 @@ backend/
   src/sia/
     main.py         App factory
     core/           Config, logging, database, errors, request middleware
-    modules/        Feature modules (health so far)
+    modules/
+      health/       Liveness and readiness probes
+      identity/     Users, organisations, memberships, sessions, auth API
   migrations/       Alembic database migrations
   tests/unit/       Fast tests, no database
   tests/integration/  Tests against a real PostgreSQL
@@ -83,6 +89,15 @@ docs/               Product brief, architecture, ADRs
 compose.yaml        Local infrastructure (PostgreSQL + pgvector)
 pyproject.toml      uv workspace root and shared tool configuration
 ```
+
+## Security model (summary)
+
+- The API connects as `sia_app`, a database role that cannot bypass Row-Level Security; tenant
+  isolation is enforced by PostgreSQL itself ([ADR-0007](docs/adr/0007-database-roles-and-rls-mechanics.md)).
+- Passwords: Argon2id. Sessions: random 256-bit tokens in `HttpOnly`, `SameSite=Lax` cookies,
+  stored only as SHA-256 hashes, revocable, idle and absolute expiry.
+- CSRF: `Origin` header check on state-changing requests. Brute force: per-email and per-IP
+  login throttling. Security events are logged by ID, never with passwords or emails.
 
 ## Troubleshooting
 

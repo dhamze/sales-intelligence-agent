@@ -12,3 +12,4 @@ supersedes the old one.
 | [0004](0004-multi-tenancy-rls.md) | Shared-schema multi-tenancy with Row-Level Security | Accepted |
 | [0005](0005-react-vite-spa.md) | React + Vite SPA instead of Next.js | Accepted |
 | [0006](0006-direct-llm-sdk.md) | Direct LLM SDK instead of an orchestration framework | Accepted |
+| [0007](0007-database-roles-and-rls-mechanics.md) | Database roles and Row-Level Security mechanics | Accepted |

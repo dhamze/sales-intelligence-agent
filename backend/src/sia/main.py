@@ -18,8 +18,9 @@ from sia.core.config import Settings, get_settings
 from sia.core.db import create_engine, create_sessionmaker
 from sia.core.errors import register_error_handlers
 from sia.core.logging import configure_logging
-from sia.core.middleware import RequestContextMiddleware
+from sia.core.middleware import OriginCheckMiddleware, RequestContextMiddleware
 from sia.modules.health.router import router as health_router
+from sia.modules.identity.router import auth_router, org_router
 
 logger = structlog.get_logger(__name__)
 
@@ -52,7 +53,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = settings
 
     register_error_handlers(app)
+    # Middleware added last runs first: RequestContext wraps everything, so even requests
+    # rejected by the origin check get a request ID and an access log line.
+    app.add_middleware(OriginCheckMiddleware, allowed_origins=settings.allowed_origins)
     app.add_middleware(RequestContextMiddleware)
+
     app.include_router(health_router)
+    app.include_router(auth_router)
+    app.include_router(org_router)
 
     return app

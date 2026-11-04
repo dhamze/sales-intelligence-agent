@@ -78,3 +78,38 @@ class RequestContextMiddleware:
                     status=status_code,
                     duration_ms=round((time.perf_counter() - started_at) * 1000, 1),
                 )
+
+
+SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "TRACE"})
+
+
+class OriginCheckMiddleware:
+    """CSRF protection: reject state-changing requests sent by a browser from another site.
+
+    Browsers attach an `Origin` header to cross-site (and same-site) POST/PUT/PATCH/DELETE
+    requests, and page scripts cannot forge it. If it is present, it must be our own origin or
+    one of `allowed_origins`. Requests without `Origin` come from non-browser clients (curl,
+    server-to-server), which cannot carry a victim's cookies, so they are allowed.
+
+    Works together with `SameSite=Lax` session cookies (OWASP CSRF Prevention Cheat Sheet).
+    """
+
+    def __init__(self, app: ASGIApp, allowed_origins: list[str]) -> None:
+        self.app = app
+        self.allowed_origins = frozenset(o.rstrip("/").lower() for o in allowed_origins)
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] == "http" and scope["method"] not in SAFE_METHODS:
+            headers = {k.decode("latin-1"): v.decode("latin-1") for k, v in scope["headers"]}
+            origin = headers.get("origin")
+            if origin is not None and not self._is_allowed(origin, scope, headers):
+                logger.warning("cross_origin_request_blocked", origin=origin[:200])
+                response = error_response(403, "forbidden_origin", "Cross-origin request blocked.")
+                await response(scope, receive, send)
+                return
+        await self.app(scope, receive, send)
+
+    def _is_allowed(self, origin: str, scope: Scope, headers: dict[str, str]) -> bool:
+        origin = origin.rstrip("/").lower()
+        own_origin = f"{scope.get('scheme', 'http')}://{headers.get('host', '')}".lower()
+        return origin in self.allowed_origins or origin == own_origin
