@@ -1,10 +1,12 @@
 # Sales Intelligence Agent
 
+[![CI](https://github.com/dhamze/sales-intelligence-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/dhamze/sales-intelligence-agent/actions/workflows/ci.yml)
+
 An AI-assisted sales intelligence platform for B2B sales teams: import an account list, enrich
 each company from public sources, score it against your ideal customer profile with an
 explainable breakdown, and get grounded AI account briefs with cited sources.
 
-> **Status:** Phase 0 (foundation) — see the [roadmap](docs/architecture.md#roadmap).
+> **Status:** Phase 1 (backend skeleton) complete — see the [roadmap](docs/architecture.md#roadmap).
 
 ## Documentation
 
@@ -20,10 +22,12 @@ React + TypeScript + Vite · Claude API · Docker · GitHub Actions
 ## Prerequisites
 
 - [uv](https://docs.astral.sh/uv/) (Python package and project manager)
-- Docker Desktop (PostgreSQL runs in a container from Phase 1)
+- Docker Desktop
 - Node.js 22+ (frontend, from Phase 4)
 
 ## Getting started
+
+Run all commands from the repository root.
 
 ```bash
 # 1. Install Python 3.13 (if needed) and all locked dependencies into .venv
@@ -32,27 +36,56 @@ uv sync
 # 2. Install the git hooks (lint, format, type check, secret scan on every commit)
 uv run pre-commit install
 
-# 3. Create your local configuration
-cp .env.example .env   # then edit values
+# 3. Create your local configuration, then set a POSTGRES_PASSWORD of your choice
+cp .env.example .env
+
+# 4. Start PostgreSQL (first run also creates the sia_dev and sia_test databases)
+docker compose up -d db
+
+# 5. Apply database migrations
+uv run alembic -c backend/alembic.ini upgrade head
+
+# 6. Run the API with auto-reload
+uv run uvicorn sia.main:create_app --factory --reload
 ```
+
+Then open <http://127.0.0.1:8000/docs> for interactive API docs, or
+<http://127.0.0.1:8000/health/ready> to confirm the database connection.
 
 ## Everyday commands
 
 | Task | Command |
 |---|---|
-| Run tests | `uv run pytest` |
-| Lint | `uv run ruff check .` |
-| Format | `uv run ruff format .` |
-| Type check | `uv run mypy` |
+| Run all tests (needs the database running) | `uv run pytest` |
+| Run unit tests only (no database) | `uv run pytest -m "not integration"` |
+| Lint / format / type check | `uv run ruff check .` · `uv run ruff format .` · `uv run mypy` |
 | Run all pre-commit hooks | `uv run pre-commit run --all-files` |
+| Create a migration after changing models | `uv run alembic -c backend/alembic.ini revision --autogenerate -m "describe change"` |
+| Apply / roll back one migration | `uv run alembic -c backend/alembic.ini upgrade head` · `... downgrade -1` |
+| Stop the database (keeps data) | `docker compose stop` |
+| Delete all local database data | `docker compose down -v` |
 | Add a backend dependency | `uv add --package sia-backend <name>` |
 | Add a dev tool | `uv add --dev <name>` |
 
 ## Repository layout
 
 ```
-backend/        FastAPI API + background worker (Python package `sia`)
-docs/           Product brief, architecture, ADRs
-.github/        CI workflows
-pyproject.toml  uv workspace root and shared tool configuration
+backend/
+  src/sia/
+    main.py         App factory
+    core/           Config, logging, database, errors, request middleware
+    modules/        Feature modules (health so far)
+  migrations/       Alembic database migrations
+  tests/unit/       Fast tests, no database
+  tests/integration/  Tests against a real PostgreSQL
+infra/postgres/     Database init scripts
+docs/               Product brief, architecture, ADRs
+compose.yaml        Local infrastructure (PostgreSQL + pgvector)
+pyproject.toml      uv workspace root and shared tool configuration
 ```
+
+## Troubleshooting
+
+- **Slow database connections on Windows:** use `POSTGRES_HOST=127.0.0.1`, not `localhost`.
+  Windows tries IPv6 (`::1`) first, which Docker does not listen on, adding ~2 s per connection.
+- **`docker` not found:** open a new terminal after installing Docker Desktop.
