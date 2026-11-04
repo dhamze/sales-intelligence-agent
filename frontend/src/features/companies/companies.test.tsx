@@ -51,11 +51,14 @@ describe("Companies page", () => {
 
     await user.type(screen.getByLabelText("Search companies"), "init");
 
+    // Wait for the request itself (not just the URL): on slow machines it is sent a moment later.
     await waitFor(() => {
-      expect(router.state.location.search).toEqual({ q: "init" });
+      expect(requests.filter((r) => r.searchParams.get("q") === "init")).toHaveLength(1);
     });
-    const searched = requests.filter((r) => r.searchParams.get("q") === "init");
-    expect(searched).toHaveLength(1); // one request for the whole word, not one per key
+    expect(router.state.location.search).toEqual({ q: "init" });
+    // Debounced: the API only ever saw the finished word, never "i", "in" or "ini".
+    const searchedTerms = requests.map((r) => r.searchParams.get("q")).filter(Boolean);
+    expect(searchedTerms).toEqual(["init"]);
   });
 
   it("offers to clear filters when nothing matches", async () => {
