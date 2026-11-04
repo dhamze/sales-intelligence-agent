@@ -116,6 +116,78 @@ jobs:
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=moderate
 
+  e2e:
+    name: End-to-end (browser + API + database)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.6-pg17-trixie
+        env:
+          POSTGRES_USER: sia
+          POSTGRES_PASSWORD: ci-throwaway-password
+          POSTGRES_DB: sia_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sia -d sia_e2e"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      CI: "true"
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: sia_e2e
+      POSTGRES_USER: sia
+      POSTGRES_PASSWORD: ci-throwaway-password
+      SIA_APP_DB_PASSWORD: ci-throwaway-app-password
+      SIA_LOG_FORMAT: json
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Install Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
+        with:
+          node-version: "26"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+        with:
+          enable-cache: true
+
+      - name: Prepare database (app role + migrations)
+        env:
+          PGHOST: 127.0.0.1
+          PGPASSWORD: ci-throwaway-password
+        run: |
+          bash infra/postgres/init/02-create-app-role.sh
+          uv sync --locked
+          uv run alembic -c backend/alembic.ini upgrade head
+
+      - name: Build web app
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Install browser
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Run end-to-end tests
+        working-directory: frontend
+        run: npx playwright test
+
+      - name: Keep the report and traces of failed runs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: playwright-report
+          path: frontend/playwright-report
+          retention-days: 14
+
   secrets:
     name: Secret scan
     runs-on: ubuntu-latest

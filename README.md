@@ -6,7 +6,7 @@ An AI-assisted sales intelligence platform for B2B sales teams: import an accoun
 each company from public sources, score it against your ideal customer profile with an
 explainable breakdown, and get grounded AI account briefs with cited sources.
 
-> **Status:** Phase 3 (companies, contacts, CSV import, search) complete — see the [roadmap](docs/architecture.md#roadmap).
+> **Status:** Phase 4 (web app) complete — see the [roadmap](docs/architecture.md#roadmap).
 
 ## Documentation
 
@@ -81,6 +81,7 @@ Then open <http://127.0.0.1:8000/docs> for interactive API docs, or
 | Add a dev tool | `uv add --dev <name>` |
 | Frontend: type check / lint / unit tests | `npm run typecheck` · `npm run lint` · `npm test` (in `frontend/`) |
 | Regenerate frontend API types after backend changes | `npm run api:sync` (in `frontend/`) |
+| End-to-end tests (real browser + API + DB) | `npm run build && npm run e2e` (in `frontend/`, database running) |
 
 ## Repository layout
 
