@@ -2,7 +2,15 @@
 
 Connection details come from the environment / `.env` (CI sets them as env vars), but the
 database name is always forced to `sia_test`, so tests can never wipe development data.
-The schema is dropped and rebuilt from migrations once per test session.
+
+Two database roles are used, exactly as in production:
+- `engine`       — the restricted runtime role `sia_app`. Code under test uses this, so RLS
+                   is really enforced in tests.
+- `owner_engine` — the schema owner (a superuser locally). Only for test setup/teardown that
+                   must bypass RLS, e.g. creating two tenants' data.
+
+The schema is dropped and rebuilt from migrations once per session; table rows are wiped
+before every test.
 """
 
 import asyncio
@@ -13,8 +21,8 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from fastapi import FastAPI
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy import pool, text
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from sia.core.config import Settings
 from sia.core.db import create_engine
@@ -34,7 +42,7 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
 
 @pytest.fixture(scope="session")
 def test_settings() -> Settings:
-    base = Settings()
+    base = Settings()  # credentials from environment / .env
     return base.model_copy(
         update={"env": "test", "postgres_db": TEST_DATABASE, "log_level": "WARNING"}
     )
@@ -46,8 +54,12 @@ def alembic_config(settings: Settings) -> Config:
     return config
 
 
+def create_owner_engine(settings: Settings) -> AsyncEngine:
+    return create_async_engine(settings.migration_database_url, poolclass=pool.NullPool)
+
+
 async def _reset_schema(settings: Settings) -> None:
-    engine = create_engine(settings)
+    engine = create_owner_engine(settings)
     try:
         async with engine.begin() as conn:
             await conn.execute(text("DROP SCHEMA public CASCADE"))
@@ -74,7 +86,35 @@ def migrated_database(test_settings: Settings) -> Iterator[None]:
 
 
 @pytest.fixture
+async def owner_engine(test_settings: Settings) -> AsyncIterator[AsyncEngine]:
+    engine = create_owner_engine(test_settings)
+    yield engine
+    await engine.dispose()
+
+
+@pytest.fixture(autouse=True)
+async def clean_tables(owner_engine: AsyncEngine) -> None:
+    """Start every test with empty tables (schema and migration history are kept)."""
+    async with owner_engine.begin() as conn:
+        tables = (
+            (
+                await conn.execute(
+                    text(
+                        "SELECT quote_ident(tablename) FROM pg_tables "
+                        "WHERE schemaname = 'public' AND tablename <> 'alembic_version'"
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        if tables:
+            await conn.execute(text(f"TRUNCATE {', '.join(tables)} CASCADE"))
+
+
+@pytest.fixture
 async def engine(test_settings: Settings) -> AsyncIterator[AsyncEngine]:
+    """Runtime engine: connects as the restricted `sia_app` role, like the real API."""
     engine = create_engine(test_settings)
     yield engine
     await engine.dispose()

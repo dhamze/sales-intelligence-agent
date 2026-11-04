@@ -15,6 +15,10 @@ Environment = Literal["development", "test", "production"]
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR"]
 LogFormat = Literal["console", "json"]
 
+# The restricted database role the application connects as. Fixed (not configurable) because
+# migrations grant privileges to it by name. Created by infra/postgres/init/02-create-app-role.sh.
+APP_DB_ROLE = "sia_app"
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -32,10 +36,13 @@ class Settings(BaseSettings):
     # --- Database ---
     postgres_host: str = Field(default="127.0.0.1", validation_alias="POSTGRES_HOST")
     postgres_port: int = Field(default=5432, ge=1, le=65535, validation_alias="POSTGRES_PORT")
-    postgres_user: str = Field(validation_alias="POSTGRES_USER")
-    # SecretStr keeps the password out of logs, tracebacks and `repr()` output.
-    postgres_password: SecretStr = Field(validation_alias="POSTGRES_PASSWORD")
     postgres_db: str = Field(default="sia_dev", validation_alias="POSTGRES_DB")
+    # Owner role: owns the schema and runs migrations. Never used by the running API.
+    postgres_user: str = Field(validation_alias="POSTGRES_USER")
+    # SecretStr keeps passwords out of logs, tracebacks and `repr()` output.
+    postgres_password: SecretStr = Field(validation_alias="POSTGRES_PASSWORD")
+    # Password for the restricted runtime role APP_DB_ROLE (see docs/adr/0007).
+    app_db_password: SecretStr = Field(validation_alias="SIA_APP_DB_PASSWORD")
     db_pool_size: int = Field(default=5, ge=1, validation_alias="SIA_DB_POOL_SIZE")
     db_connect_timeout_seconds: float = Field(
         default=5.0, gt=0, validation_alias="SIA_DB_CONNECT_TIMEOUT_SECONDS"
@@ -43,12 +50,20 @@ class Settings(BaseSettings):
 
     @property
     def database_url(self) -> URL:
-        """SQLAlchemy URL for the async driver. Built with `URL.create` so special characters
-        in the password are escaped correctly."""
+        """Runtime connection, as the restricted `sia_app` role (subject to Row-Level Security)."""
+        return self._url(APP_DB_ROLE, self.app_db_password)
+
+    @property
+    def migration_database_url(self) -> URL:
+        """Owner connection, for migrations and test setup only."""
+        return self._url(self.postgres_user, self.postgres_password)
+
+    def _url(self, username: str, password: SecretStr) -> URL:
+        # URL.create escapes special characters in the password correctly.
         return URL.create(
             drivername="postgresql+asyncpg",
-            username=self.postgres_user,
-            password=self.postgres_password.get_secret_value(),
+            username=username,
+            password=password.get_secret_value(),
             host=self.postgres_host,
             port=self.postgres_port,
             database=self.postgres_db,

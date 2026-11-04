@@ -31,7 +31,7 @@ _COMPARE_OPTIONS = {"compare_type": True, "compare_server_default": True}
 def run_migrations_offline() -> None:
     """Emit SQL to stdout instead of executing it (`alembic upgrade head --sql`)."""
     context.configure(
-        url=settings.database_url.render_as_string(hide_password=True),
+        url=settings.migration_database_url.render_as_string(hide_password=True),
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -48,7 +48,7 @@ def do_run_migrations(connection: Connection) -> None:
 
 
 async def run_async_migrations() -> None:
-    engine = create_async_engine(settings.database_url, poolclass=pool.NullPool)
+    engine = create_async_engine(settings.migration_database_url, poolclass=pool.NullPool)
     try:
         async with engine.connect() as connection:
             await connection.run_sync(do_run_migrations)

@@ -36,6 +36,7 @@ jobs:
       POSTGRES_PORT: "5432"
       POSTGRES_USER: sia
       POSTGRES_PASSWORD: ci-throwaway-password
+      SIA_APP_DB_PASSWORD: ci-throwaway-app-password
       SIA_LOG_FORMAT: json
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -56,6 +57,13 @@ jobs:
 
       - name: Type check
         run: uv run mypy
+
+      - name: Create restricted app database role
+        # Same script Docker Compose runs locally; psql connects via the PG* variables.
+        env:
+          PGHOST: 127.0.0.1
+          PGPASSWORD: ci-throwaway-password
+        run: bash infra/postgres/init/02-create-app-role.sh
 
       - name: Tests
         run: uv run pytest

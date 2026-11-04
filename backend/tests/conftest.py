@@ -31,6 +31,7 @@ def make_settings() -> SettingsFactory:
             "POSTGRES_PORT": 5432,
             "POSTGRES_USER": "unit",
             "POSTGRES_PASSWORD": "unit-password",
+            "SIA_APP_DB_PASSWORD": "unit-app-password",
             "POSTGRES_DB": "sia_unit_no_db",
         }
         values.update(overrides)

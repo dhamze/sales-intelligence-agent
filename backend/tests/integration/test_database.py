@@ -23,10 +23,12 @@ async def _current_revision(engine: AsyncEngine) -> str | None:
         return row.scalar_one_or_none()
 
 
-async def test_database_is_migrated_to_head(engine: AsyncEngine, test_settings: Settings) -> None:
+async def test_database_is_migrated_to_head(
+    owner_engine: AsyncEngine, test_settings: Settings
+) -> None:
     head = ScriptDirectory.from_config(alembic_config(test_settings)).get_current_head()
 
-    assert await _current_revision(engine) == head
+    assert await _current_revision(owner_engine) == head
 
 
 async def test_required_extensions_are_installed(engine: AsyncEngine) -> None:
