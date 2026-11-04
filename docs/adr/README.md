@@ -15,3 +15,4 @@ supersedes the old one.
 | [0007](0007-database-roles-and-rls-mechanics.md) | Database roles and Row-Level Security mechanics | Accepted |
 | [0008](0008-fuzzy-search-under-rls.md) | Fuzzy search under Row-Level Security | Accepted |
 | [0009](0009-ssrf-safe-fetching.md) | SSRF-safe fetching of user-supplied websites | Accepted |
+| [0010](0010-grounded-extraction.md) | Grounded AI extraction with verified evidence | Accepted |

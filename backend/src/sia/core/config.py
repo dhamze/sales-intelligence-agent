@@ -5,15 +5,18 @@ with a clear error, instead of failing later in some unrelated code path.
 """
 
 from functools import lru_cache
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import URL
 
 Environment = Literal["development", "test", "production"]
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR"]
 LogFormat = Literal["console", "json"]
+LLMProvider = Literal["anthropic", "fake"]
+FetchProvider = Literal["web", "fake"]
+Effort = Literal["low", "medium", "high"]
 
 # The restricted database role the application connects as. Fixed (not configurable) because
 # migrations grant privileges to it by name. Created by infra/postgres/init/02-create-app-role.sh.
@@ -53,6 +56,19 @@ class Settings(BaseSettings):
         default=4, ge=1, le=32, validation_alias="SIA_WORKER_CONCURRENCY"
     )
 
+    # --- Enrichment (website reading + AI extraction) ---
+    # The Anthropic SDK's standard variable name; read from .env like every other setting.
+    anthropic_api_key: SecretStr | None = Field(default=None, validation_alias="ANTHROPIC_API_KEY")
+    llm_provider: LLMProvider = Field(default="anthropic", validation_alias="SIA_LLM_PROVIDER")
+    fetch_provider: FetchProvider = Field(default="web", validation_alias="SIA_FETCH_PROVIDER")
+    enrichment_model: str = Field(
+        default="claude-opus-5-5", validation_alias="SIA_ENRICHMENT_MODEL"
+    )
+    enrichment_effort: Effort = Field(default="low", validation_alias="SIA_ENRICHMENT_EFFORT")
+    enrichment_daily_limit: int = Field(
+        default=200, ge=0, validation_alias="SIA_ENRICHMENT_DAILY_LIMIT"
+    )
+
     # --- Authentication & browser security ---
     session_idle_timeout_hours: int = Field(
         default=24 * 7, ge=1, validation_alias="SIA_SESSION_IDLE_TIMEOUT_HOURS"
@@ -75,6 +91,13 @@ class Settings(BaseSettings):
     login_failure_window_minutes: int = Field(
         default=15, ge=1, validation_alias="SIA_LOGIN_FAILURE_WINDOW_MINUTES"
     )
+
+    @model_validator(mode="after")
+    def _no_fakes_in_production(self) -> Self:
+        """Fake AI/fetch providers exist for tests and demos; never let them run in production."""
+        if self.is_production and "fake" in (self.llm_provider, self.fetch_provider):
+            raise ValueError("Fake enrichment providers cannot be used in production.")
+        return self
 
     @property
     def session_cookie_name(self) -> str:

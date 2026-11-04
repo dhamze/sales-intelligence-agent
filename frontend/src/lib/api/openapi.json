@@ -149,6 +149,36 @@
         "title": "CompanyCreate",
         "type": "object"
       },
+      "CompanyEnrichmentOut": {
+        "properties": {
+          "latest_run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EnrichmentRunOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CompanyProfileOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "latest_run",
+          "profile"
+        ],
+        "title": "CompanyEnrichmentOut",
+        "type": "object"
+      },
       "CompanyFacets": {
         "description": "Values available for filtering, most common first (for filter dropdowns).",
         "properties": {
@@ -297,6 +327,52 @@
           "updated_at"
         ],
         "title": "CompanyOut",
+        "type": "object"
+      },
+      "CompanyProfileOut": {
+        "properties": {
+          "facts": {
+            "additionalProperties": true,
+            "description": "Verified facts: {field: {value, evidence[]}}",
+            "title": "Facts",
+            "type": "object"
+          },
+          "facts_dropped": {
+            "description": "Facts discarded because their quotes didn't verify",
+            "title": "Facts Dropped",
+            "type": "integer"
+          },
+          "facts_kept": {
+            "title": "Facts Kept",
+            "type": "integer"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "sources": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Sources",
+            "type": "array"
+          }
+        },
+        "required": [
+          "facts",
+          "sources",
+          "facts_kept",
+          "facts_dropped",
+          "model",
+          "generated_at"
+        ],
+        "title": "CompanyProfileOut",
         "type": "object"
       },
       "CompanyUpdate": {
@@ -743,6 +819,129 @@
           }
         },
         "title": "ContactUpdate",
+        "type": "object"
+      },
+      "EnrichRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "company_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 200,
+            "title": "Company Ids",
+            "type": "array"
+          },
+          "not_yet_enriched": {
+            "default": false,
+            "description": "Also queue companies that have never been enriched, up to today's quota",
+            "title": "Not Yet Enriched",
+            "type": "boolean"
+          }
+        },
+        "title": "EnrichRequest",
+        "type": "object"
+      },
+      "EnrichmentRunOut": {
+        "properties": {
+          "company_id": {
+            "format": "uuid",
+            "title": "Company Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "failure_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Reason"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RunStatus"
+          }
+        },
+        "required": [
+          "id",
+          "company_id",
+          "status",
+          "failure_reason",
+          "created_at",
+          "started_at",
+          "finished_at"
+        ],
+        "title": "EnrichmentRunOut",
+        "type": "object"
+      },
+      "EnrichmentUsageOut": {
+        "properties": {
+          "configured": {
+            "title": "Configured",
+            "type": "boolean"
+          },
+          "cost_today_usd": {
+            "title": "Cost Today Usd",
+            "type": "string"
+          },
+          "daily_limit": {
+            "title": "Daily Limit",
+            "type": "integer"
+          },
+          "remaining_today": {
+            "title": "Remaining Today",
+            "type": "integer"
+          },
+          "used_today": {
+            "title": "Used Today",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "used_today",
+          "daily_limit",
+          "remaining_today",
+          "cost_today_usd",
+          "configured"
+        ],
+        "title": "EnrichmentUsageOut",
         "type": "object"
       },
       "EntityType": {
@@ -1392,6 +1591,16 @@
         ],
         "title": "RowErrorOut",
         "type": "object"
+      },
+      "RunStatus": {
+        "enum": [
+          "queued",
+          "running",
+          "succeeded",
+          "failed"
+        ],
+        "title": "RunStatus",
+        "type": "string"
       },
       "SignupRequest": {
         "additionalProperties": false,
@@ -2111,6 +2320,93 @@
         ]
       }
     },
+    "/companies/{company_id}/enrich": {
+      "post": {
+        "description": "Queue (or return the already-active) enrichment run for one company.",
+        "operationId": "enrich_company_companies__company_id__enrich_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "company_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Company Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrichmentRunOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Enrich Company",
+        "tags": [
+          "enrichment"
+        ]
+      }
+    },
+    "/companies/{company_id}/enrichment": {
+      "get": {
+        "operationId": "company_enrichment_companies__company_id__enrichment_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "company_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Company Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyEnrichmentOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Company Enrichment",
+        "tags": [
+          "enrichment"
+        ]
+      }
+    },
     "/contacts": {
       "get": {
         "operationId": "list_contacts_contacts_get",
@@ -2413,6 +2709,72 @@
         "summary": "Update Contact",
         "tags": [
           "contacts"
+        ]
+      }
+    },
+    "/enrichment/runs": {
+      "post": {
+        "operationId": "enrich_many_enrichment_runs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrichRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EnrichmentRunOut"
+                  },
+                  "title": "Response Enrich Many Enrichment Runs Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Enrich Many",
+        "tags": [
+          "enrichment"
+        ]
+      }
+    },
+    "/enrichment/usage": {
+      "get": {
+        "operationId": "enrichment_usage_enrichment_usage_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrichmentUsageOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Enrichment Usage",
+        "tags": [
+          "enrichment"
         ]
       }
     },

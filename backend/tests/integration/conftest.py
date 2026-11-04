@@ -45,7 +45,15 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
 def test_settings() -> Settings:
     base = Settings()  # credentials from environment / .env
     return base.model_copy(
-        update={"env": "test", "postgres_db": TEST_DATABASE, "log_level": "WARNING"}
+        update={
+            "env": "test",
+            "postgres_db": TEST_DATABASE,
+            "log_level": "WARNING",
+            # Never call the real AI API or the live web from tests, even if .env has a key.
+            "llm_provider": "fake",
+            "fetch_provider": "fake",
+            "anthropic_api_key": None,
+        }
     )
 
 

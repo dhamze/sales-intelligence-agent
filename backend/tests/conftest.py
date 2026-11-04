@@ -20,6 +20,23 @@ from sia.main import create_app
 SettingsFactory = Callable[..., Settings]
 
 
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption(
+        "--run-live-llm",
+        action="store_true",
+        help="Run the live AI quality check (real Claude API + live websites; costs money).",
+    )
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    if config.getoption("--run-live-llm"):
+        return
+    skip = pytest.mark.skip(reason="live AI check: run with --run-live-llm (costs money)")
+    for item in items:
+        if "live_llm" in item.keywords:
+            item.add_marker(skip)
+
+
 def pytest_asyncio_loop_factories(
     config: pytest.Config, item: pytest.Item
 ) -> dict[str, Callable[[], asyncio.AbstractEventLoop]]:

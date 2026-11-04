@@ -162,3 +162,32 @@ async def company_names(
 ) -> dict[uuid.UUID, str]:
     """Names for a batch of company IDs (one query), e.g. to label contacts."""
     return await repository.names_by_id(db, tenant.organization_id, ids)
+
+
+# --- For other modules acting without a logged-in request (e.g. background jobs) --------------
+
+ENRICHABLE_FIELDS = {"description": 5000, "industry": 100, "country": 100, "city": 100}
+
+
+async def get_for_organization(
+    db: AsyncSession, organization_id: uuid.UUID, company_id: uuid.UUID
+) -> Company | None:
+    return await repository.get(db, organization_id, company_id)
+
+
+async def fill_empty_fields(
+    db: AsyncSession, organization_id: uuid.UUID, company_id: uuid.UUID, values: dict[str, str]
+) -> list[str]:
+    """Set fields that are currently empty; never overwrite a value. Returns the fields set.
+    (Same rule as CSV import: people's curated data always wins.) No commit."""
+    company = await repository.get(db, organization_id, company_id)
+    if company is None:
+        return []
+    filled = []
+    for field, value in values.items():
+        max_length = ENRICHABLE_FIELDS.get(field)
+        if max_length is None or not value.strip() or getattr(company, field) is not None:
+            continue
+        setattr(company, field, value.strip()[:max_length])
+        filled.append(field)
+    return filled

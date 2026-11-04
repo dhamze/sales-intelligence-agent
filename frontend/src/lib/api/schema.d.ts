@@ -143,6 +143,43 @@ export interface paths {
         patch: operations["update_company_companies__company_id__patch"];
         trace?: never;
     };
+    "/companies/{company_id}/enrich": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enrich Company
+         * @description Queue (or return the already-active) enrichment run for one company.
+         */
+        post: operations["enrich_company_companies__company_id__enrich_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/companies/{company_id}/enrichment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Company Enrichment */
+        get: operations["company_enrichment_companies__company_id__enrichment_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/contacts": {
         parameters: {
             query?: never;
@@ -178,6 +215,40 @@ export interface paths {
         head?: never;
         /** Update Contact */
         patch: operations["update_contact_contacts__contact_id__patch"];
+        trace?: never;
+    };
+    "/enrichment/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Enrich Many */
+        post: operations["enrich_many_enrichment_runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/enrichment/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Enrichment Usage */
+        get: operations["enrichment_usage_enrichment_usage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/health/live": {
@@ -376,6 +447,11 @@ export interface components {
             /** Website */
             website?: string | null;
         };
+        /** CompanyEnrichmentOut */
+        CompanyEnrichmentOut: {
+            latest_run: components["schemas"]["EnrichmentRunOut"] | null;
+            profile: components["schemas"]["CompanyProfileOut"] | null;
+        };
         /**
          * CompanyFacets
          * @description Values available for filtering, most common first (for filter dropdowns).
@@ -424,6 +500,34 @@ export interface components {
             updated_at: string;
             /** Website */
             website: string | null;
+        };
+        /** CompanyProfileOut */
+        CompanyProfileOut: {
+            /**
+             * Facts
+             * @description Verified facts: {field: {value, evidence[]}}
+             */
+            facts: {
+                [key: string]: unknown;
+            };
+            /**
+             * Facts Dropped
+             * @description Facts discarded because their quotes didn't verify
+             */
+            facts_dropped: number;
+            /** Facts Kept */
+            facts_kept: number;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Model */
+            model: string;
+            /** Sources */
+            sources: {
+                [key: string]: unknown;
+            }[];
         };
         /**
          * CompanyUpdate
@@ -525,6 +629,55 @@ export interface components {
             phone?: string | null;
             /** Title */
             title?: string | null;
+        };
+        /** EnrichRequest */
+        EnrichRequest: {
+            /** Company Ids */
+            company_ids?: string[];
+            /**
+             * Not Yet Enriched
+             * @description Also queue companies that have never been enriched, up to today's quota
+             * @default false
+             */
+            not_yet_enriched: boolean;
+        };
+        /** EnrichmentRunOut */
+        EnrichmentRunOut: {
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Failure Reason */
+            failure_reason: string | null;
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Started At */
+            started_at: string | null;
+            status: components["schemas"]["RunStatus"];
+        };
+        /** EnrichmentUsageOut */
+        EnrichmentUsageOut: {
+            /** Configured */
+            configured: boolean;
+            /** Cost Today Usd */
+            cost_today_usd: string;
+            /** Daily Limit */
+            daily_limit: number;
+            /** Remaining Today */
+            remaining_today: number;
+            /** Used Today */
+            used_today: number;
         };
         /**
          * EntityType
@@ -804,6 +957,11 @@ export interface components {
              */
             row: number;
         };
+        /**
+         * RunStatus
+         * @enum {string}
+         */
+        RunStatus: "queued" | "running" | "succeeded" | "failed";
         /** SignupRequest */
         SignupRequest: {
             /**
@@ -1200,6 +1358,68 @@ export interface operations {
             };
         };
     };
+    enrich_company_companies__company_id__enrich_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                company_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnrichmentRunOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    company_enrichment_companies__company_id__enrichment_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                company_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyEnrichmentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_contacts_contacts_get: {
         parameters: {
             query?: {
@@ -1361,6 +1581,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    enrich_many_enrichment_runs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnrichRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnrichmentRunOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    enrichment_usage_enrichment_usage_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnrichmentUsageOut"];
                 };
             };
         };

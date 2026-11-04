@@ -25,6 +25,7 @@ from sia.core.middleware import (
 )
 from sia.modules.companies.router import router as companies_router
 from sia.modules.contacts.router import router as contacts_router
+from sia.modules.enrichment.router import router as enrichment_router
 from sia.modules.health.router import router as health_router
 from sia.modules.identity.router import auth_router, org_router
 from sia.modules.imports.router import router as imports_router
@@ -75,5 +76,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(companies_router)
     app.include_router(contacts_router)
     app.include_router(imports_router)
+    app.include_router(enrichment_router)
 
     return app

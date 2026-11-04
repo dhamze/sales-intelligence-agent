@@ -76,4 +76,5 @@ asyncio_default_fixture_loop_scope = "function"
 filterwarnings = ["error"]
 markers = [
     "integration: needs a running PostgreSQL (docker compose up -d db). Skip with -m 'not integration'.",
+    "live_llm: calls the real Claude API and live websites (costs money). Run only with --run-live-llm.",
 ]
