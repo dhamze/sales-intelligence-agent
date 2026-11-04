@@ -44,7 +44,7 @@ class ImportPreview(ImportOut):
     delimiter: str
 
 
-class CommitImportRequest(BaseModel):
+class ImportMappingRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     mapping: dict[str, str | None] | None = Field(

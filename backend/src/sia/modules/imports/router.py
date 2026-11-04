@@ -12,7 +12,7 @@ from sia.modules.identity.dependencies import CurrentTenant
 from sia.modules.imports import service
 from sia.modules.imports.mapping import EntityType
 from sia.modules.imports.parsing import MAX_FILE_BYTES
-from sia.modules.imports.schemas import CommitImportRequest, ImportOut, ImportPreview
+from sia.modules.imports.schemas import ImportMappingRequest, ImportOut, ImportPreview
 
 router = APIRouter(prefix="/imports", tags=["imports"])
 
@@ -35,9 +35,18 @@ async def upload(
     return await service.create_preview(db, tenant, entity_type, file.filename or "", content)
 
 
+@router.post("/{import_id}/preview")
+async def preview(
+    import_id: uuid.UUID, body: ImportMappingRequest, tenant: CurrentTenant, db: DbSession
+) -> ImportPreview:
+    """Recompute the preview of a pending import (optionally with a different mapping).
+    Writes nothing."""
+    return await service.preview_import(db, tenant, import_id, body.mapping)
+
+
 @router.post("/{import_id}/commit")
 async def commit(
-    import_id: uuid.UUID, body: CommitImportRequest, tenant: CurrentTenant, db: DbSession
+    import_id: uuid.UUID, body: ImportMappingRequest, tenant: CurrentTenant, db: DbSession
 ) -> ImportOut:
     return await service.commit_import(db, tenant, import_id, body.mapping)
 

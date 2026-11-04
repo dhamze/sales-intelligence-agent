@@ -134,10 +134,25 @@ async def create_preview(
     await db.commit()
     logger.info("import_previewed", import_id=str(record.id), rows=record.row_count)
 
-    available = FIELDS[entity] + ([ATTRIBUTES] if entity == EntityType.COMPANIES else [])
+    return _build_preview(out, parsed, detected, prepared, existing)
+
+
+def _build_preview(
+    out: ImportOut,
+    parsed: ParsedCsv,
+    mapping: dict[str, str | None],
+    prepared: PreparedRows,
+    existing: int,
+) -> ImportPreview:
+    available = FIELDS[out.entity_type] + (
+        [ATTRIBUTES] if out.entity_type == EntityType.COMPANIES else []
+    )
     return ImportPreview(
-        **out.model_dump(exclude={"errors"}),
-        errors=[RowErrorOut(**e) for e in record.errors[:MAX_PREVIEW_ERRORS]],
+        **out.model_dump(exclude={"errors", "mapping", "invalid_count", "duplicate_count"}),
+        mapping=mapping,
+        invalid_count=prepared.invalid_rows,
+        duplicate_count=prepared.duplicate_rows,
+        errors=[RowErrorOut(**e) for e in _errors_out(prepared.errors, MAX_PREVIEW_ERRORS)],
         available_fields=available,
         sample_rows=[
             dict(zip(parsed.headers, row, strict=True)) for row in parsed.rows[:SAMPLE_ROWS]
@@ -149,35 +164,63 @@ async def create_preview(
     )
 
 
-async def commit_import(
-    db: AsyncSession,
-    tenant: TenantContext,
-    import_id: uuid.UUID,
-    mapping_override: dict[str, str | None] | None,
-) -> ImportOut:
-    record = (
-        await db.scalars(
-            select(Import)
-            .where(Import.organization_id == tenant.organization_id, Import.id == import_id)
-            .with_for_update()  # two concurrent commits of the same preview: second one waits
-        )
-    ).one_or_none()
+async def _pending_import(
+    db: AsyncSession, tenant: TenantContext, import_id: uuid.UUID, *, lock: bool
+) -> tuple[Import, bytes]:
+    """The import and its uploaded file, if it can still be previewed or committed."""
+    query = select(Import).where(
+        Import.organization_id == tenant.organization_id, Import.id == import_id
+    )
+    if lock:
+        query = query.with_for_update()  # two concurrent commits: the second one waits
+    record = (await db.scalars(query)).one_or_none()
     if record is None:
         raise NotFoundError("Import not found.")
     if record.status != ImportStatus.PREVIEW or record.file_content is None:
         raise ImportNotPendingError()
     if datetime.now(UTC) - record.created_at > PREVIEW_TTL:
         raise ImportExpiredError()
+    return record, record.file_content
 
-    parsed = _parse(record.file_content)
+
+def _choose_mapping(
+    record: Import, parsed: ParsedCsv, override: dict[str, str | None] | None
+) -> dict[str, str | None]:
     try:
-        chosen = mapping_rules.validate_mapping(
-            mapping_override if mapping_override is not None else record.mapping,
+        return mapping_rules.validate_mapping(
+            override if override is not None else record.mapping,
             parsed.headers,
             record.entity_type,
         )
     except mapping_rules.InvalidMappingError as exc:
         raise InvalidMappingError(str(exc)) from exc
+
+
+async def preview_import(
+    db: AsyncSession,
+    tenant: TenantContext,
+    import_id: uuid.UUID,
+    mapping_override: dict[str, str | None] | None,
+) -> ImportPreview:
+    """Re-run the preview for a pending import, optionally with a different column mapping.
+    Read-only: lets the user see the effect of a mapping change before committing."""
+    record, content = await _pending_import(db, tenant, import_id, lock=False)
+    parsed = _parse(content)
+    chosen = _choose_mapping(record, parsed, mapping_override)
+    prepared = mapping_rules.prepare_rows(parsed, chosen, record.entity_type)
+    existing = await _existing_matches(db, tenant, record.entity_type, prepared)
+    return _build_preview(_to_out(record), parsed, chosen, prepared, existing)
+
+
+async def commit_import(
+    db: AsyncSession,
+    tenant: TenantContext,
+    import_id: uuid.UUID,
+    mapping_override: dict[str, str | None] | None,
+) -> ImportOut:
+    record, content = await _pending_import(db, tenant, import_id, lock=True)
+    parsed = _parse(content)
+    chosen = _choose_mapping(record, parsed, mapping_override)
 
     prepared = mapping_rules.prepare_rows(parsed, chosen, record.entity_type)
     for r in prepared.records:

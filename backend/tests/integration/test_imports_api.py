@@ -238,3 +238,37 @@ async def test_maximum_size_import_completes(alice: Actor) -> None:
     assert result["created_count"] == 10_000
     assert elapsed < 30, f"10,000-row import took {elapsed:.1f}s"
     print(f"\n10,000-row import (preview + commit): {elapsed:.2f}s")
+
+
+async def test_preview_can_be_recomputed_with_a_new_mapping_without_writing(
+    alice: Actor,
+) -> None:
+    uploaded = (await upload(alice, "Org,Site,Staff\nAcme,acme.com,12\nGlobex,,7\n")).json()
+    assert uploaded["valid_count"] == 1  # "Org" isn't recognised: only rows with a site work
+
+    again = await alice.client.post(f"/imports/{uploaded['id']}/preview", json={})
+    remapped = await alice.client.post(
+        f"/imports/{uploaded['id']}/preview",
+        json={"mapping": {"Org": "name", "Site": "website", "Staff": "employee_count"}},
+    )
+
+    assert again.status_code == 200
+    assert again.json()["sample_rows"] == uploaded["sample_rows"]  # survives a page reload
+    assert remapped.status_code == 200
+    body = remapped.json()
+    assert body["valid_count"] == 2
+    assert body["mapping"]["Org"] == "name"
+    assert body["status"] == "preview"
+    assert (await alice.client.get("/companies")).json()["items"] == []  # nothing written
+
+
+async def test_preview_rejects_invalid_mapping_and_completed_imports(alice: Actor) -> None:
+    uploaded = (await upload(alice, COMPANIES_CSV)).json()
+    bad = await alice.client.post(
+        f"/imports/{uploaded['id']}/preview", json={"mapping": {"Website": "nope"}}
+    )
+    await commit(alice, uploaded["id"])
+    done = await alice.client.post(f"/imports/{uploaded['id']}/preview", json={})
+
+    assert bad.status_code == 422
+    assert done.status_code == 409

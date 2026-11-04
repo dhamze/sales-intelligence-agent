@@ -266,6 +266,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/imports/{import_id}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview
+         * @description Recompute the preview of a pending import (optionally with a different mapping).
+         *     Writes nothing.
+         */
+        post: operations["preview_imports__import_id__preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/current": {
         parameters: {
             query?: never;
@@ -331,16 +352,6 @@ export interface components {
              * @description CSV file (max 5 MB, 10,000 rows)
              */
             file: string;
-        };
-        /** CommitImportRequest */
-        CommitImportRequest: {
-            /**
-             * Mapping
-             * @description Optional corrected mapping {csv header: field, 'attributes', or null}
-             */
-            mapping?: {
-                [key: string]: string | null;
-            } | null;
         };
         /** CompanyCreate */
         CompanyCreate: {
@@ -531,6 +542,16 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** ImportMappingRequest */
+        ImportMappingRequest: {
+            /**
+             * Mapping
+             * @description Optional corrected mapping {csv header: field, 'attributes', or null}
+             */
+            mapping?: {
+                [key: string]: string | null;
+            } | null;
         };
         /**
          * ImportOut
@@ -1500,7 +1521,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CommitImportRequest"];
+                "application/json": components["schemas"]["ImportMappingRequest"];
             };
         };
         responses: {
@@ -1511,6 +1532,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ImportOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_imports__import_id__preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                import_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportMappingRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportPreview"];
                 };
             };
             /** @description Validation Error */

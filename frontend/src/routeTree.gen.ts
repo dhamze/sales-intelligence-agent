@@ -18,6 +18,8 @@ import { Route as AppCompaniesIndexRouteImport } from './routes/_app/companies/i
 import { Route as AppCompaniesCompanyIdRouteImport } from './routes/_app/companies/$companyId'
 import { Route as AppContactsIndexRouteImport } from './routes/_app/contacts/index'
 import { Route as AppImportsIndexRouteImport } from './routes/_app/imports/index'
+import { Route as AppImportsImportIdRouteImport } from './routes/_app/imports/$importId'
+import { Route as AppImportsNewRouteImport } from './routes/_app/imports/new'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -63,6 +65,16 @@ const AppImportsIndexRoute = AppImportsIndexRouteImport.update({
   path: '/imports/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppImportsImportIdRoute = AppImportsImportIdRouteImport.update({
+  id: '/imports/$importId',
+  path: '/imports/$importId',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppImportsNewRoute = AppImportsNewRouteImport.update({
+  id: '/imports/new',
+  path: '/imports/new',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -70,6 +82,8 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/settings': typeof AppSettingsRoute
   '/companies/$companyId': typeof AppCompaniesCompanyIdRoute
+  '/imports/$importId': typeof AppImportsImportIdRoute
+  '/imports/new': typeof AppImportsNewRoute
   '/companies/': typeof AppCompaniesIndexRoute
   '/contacts/': typeof AppContactsIndexRoute
   '/imports/': typeof AppImportsIndexRoute
@@ -80,6 +94,8 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/settings': typeof AppSettingsRoute
   '/companies/$companyId': typeof AppCompaniesCompanyIdRoute
+  '/imports/$importId': typeof AppImportsImportIdRoute
+  '/imports/new': typeof AppImportsNewRoute
   '/companies': typeof AppCompaniesIndexRoute
   '/contacts': typeof AppContactsIndexRoute
   '/imports': typeof AppImportsIndexRoute
@@ -92,6 +108,8 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/companies/$companyId': typeof AppCompaniesCompanyIdRoute
+  '/_app/imports/$importId': typeof AppImportsImportIdRoute
+  '/_app/imports/new': typeof AppImportsNewRoute
   '/_app/companies/': typeof AppCompaniesIndexRoute
   '/_app/contacts/': typeof AppContactsIndexRoute
   '/_app/imports/': typeof AppImportsIndexRoute
@@ -104,6 +122,8 @@ export interface FileRouteTypes {
     | '/signup'
     | '/settings'
     | '/companies/$companyId'
+    | '/imports/$importId'
+    | '/imports/new'
     | '/companies/'
     | '/contacts/'
     | '/imports/'
@@ -114,6 +134,8 @@ export interface FileRouteTypes {
     | '/signup'
     | '/settings'
     | '/companies/$companyId'
+    | '/imports/$importId'
+    | '/imports/new'
     | '/companies'
     | '/contacts'
     | '/imports'
@@ -125,6 +147,8 @@ export interface FileRouteTypes {
     | '/signup'
     | '/_app/settings'
     | '/_app/companies/$companyId'
+    | '/_app/imports/$importId'
+    | '/_app/imports/new'
     | '/_app/companies/'
     | '/_app/contacts/'
     | '/_app/imports/'
@@ -202,12 +226,28 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppImportsIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/imports/$importId': {
+      id: '/_app/imports/$importId'
+      path: '/imports/$importId'
+      fullPath: '/imports/$importId'
+      preLoaderRoute: typeof AppImportsImportIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/imports/new': {
+      id: '/_app/imports/new'
+      path: '/imports/new'
+      fullPath: '/imports/new'
+      preLoaderRoute: typeof AppImportsNewRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
   AppSettingsRoute: typeof AppSettingsRoute
   AppCompaniesCompanyIdRoute: typeof AppCompaniesCompanyIdRoute
+  AppImportsImportIdRoute: typeof AppImportsImportIdRoute
+  AppImportsNewRoute: typeof AppImportsNewRoute
   AppCompaniesIndexRoute: typeof AppCompaniesIndexRoute
   AppContactsIndexRoute: typeof AppContactsIndexRoute
   AppImportsIndexRoute: typeof AppImportsIndexRoute
@@ -216,6 +256,8 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppSettingsRoute: AppSettingsRoute,
   AppCompaniesCompanyIdRoute: AppCompaniesCompanyIdRoute,
+  AppImportsImportIdRoute: AppImportsImportIdRoute,
+  AppImportsNewRoute: AppImportsNewRoute,
   AppCompaniesIndexRoute: AppCompaniesIndexRoute,
   AppContactsIndexRoute: AppContactsIndexRoute,
   AppImportsIndexRoute: AppImportsIndexRoute,

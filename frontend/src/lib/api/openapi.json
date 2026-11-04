@@ -20,35 +20,6 @@
         "title": "Body_upload_imports_post",
         "type": "object"
       },
-      "CommitImportRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "mapping": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Optional corrected mapping {csv header: field, 'attributes', or null}",
-            "title": "Mapping"
-          }
-        },
-        "title": "CommitImportRequest",
-        "type": "object"
-      },
       "CompanyCreate": {
         "additionalProperties": false,
         "properties": {
@@ -811,6 +782,35 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "ImportMappingRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "mapping": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional corrected mapping {csv header: field, 'attributes', or null}",
+            "title": "Mapping"
+          }
+        },
+        "title": "ImportMappingRequest",
         "type": "object"
       },
       "ImportOut": {
@@ -2630,7 +2630,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CommitImportRequest"
+                "$ref": "#/components/schemas/ImportMappingRequest"
               }
             }
           },
@@ -2659,6 +2659,60 @@
           }
         },
         "summary": "Commit",
+        "tags": [
+          "imports"
+        ]
+      }
+    },
+    "/imports/{import_id}/preview": {
+      "post": {
+        "description": "Recompute the preview of a pending import (optionally with a different mapping).\nWrites nothing.",
+        "operationId": "preview_imports__import_id__preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportMappingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview",
         "tags": [
           "imports"
         ]
