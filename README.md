@@ -66,6 +66,7 @@ Then open <http://127.0.0.1:8000/docs> for interactive API docs, or
 | Run all pre-commit hooks | `uv run pre-commit run --all-files` |
 | Create a migration after changing models | `uv run alembic -c backend/alembic.ini revision --autogenerate -m "describe change"` |
 | Apply / roll back one migration | `uv run alembic -c backend/alembic.ini upgrade head` · `... downgrade -1` |
+| Seed demo companies into your org | `uv run python -m sia.scripts.seed_companies --email you@example.com --count 50000` |
 | Stop the database (keeps data) | `docker compose stop` |
 | Delete all local database data | `docker compose down -v` |
 | Add a backend dependency | `uv add --package sia-backend <name>` |
@@ -81,6 +82,9 @@ backend/
     modules/
       health/       Liveness and readiness probes
       identity/     Users, organisations, memberships, sessions, auth API
+      companies/    Companies (accounts), domain normalisation, search
+      contacts/     Contacts linked to companies
+    scripts/        Developer scripts (seed data)
   migrations/       Alembic database migrations
   tests/unit/       Fast tests, no database
   tests/integration/  Tests against a real PostgreSQL

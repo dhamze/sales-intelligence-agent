@@ -13,21 +13,7 @@ from sia.core.config import Settings
 from sia.main import create_app
 from sia.modules.identity import repository
 from tests.integration.conftest import ClientFactory
-
-PASSWORD = "correct horse battery staple"
-COOKIE = "sia_session"
-
-
-async def signup(
-    client: httpx.AsyncClient, email: str = "alice@example.com", org: str = "Acme"
-) -> dict[str, Any]:
-    response = await client.post(
-        "/auth/signup",
-        json={"email": email, "password": PASSWORD, "name": "Alice", "organization_name": org},
-    )
-    assert response.status_code == 201, response.text
-    body: dict[str, Any] = response.json()
-    return body
+from tests.integration.helpers import COOKIE, PASSWORD, signup
 
 
 async def login(client: httpx.AsyncClient, email: str, password: str = PASSWORD) -> httpx.Response:

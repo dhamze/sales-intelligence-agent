@@ -19,6 +19,8 @@ from sia.core.db import create_engine, create_sessionmaker
 from sia.core.errors import register_error_handlers
 from sia.core.logging import configure_logging
 from sia.core.middleware import OriginCheckMiddleware, RequestContextMiddleware
+from sia.modules.companies.router import router as companies_router
+from sia.modules.contacts.router import router as contacts_router
 from sia.modules.health.router import router as health_router
 from sia.modules.identity.router import auth_router, org_router
 
@@ -61,5 +63,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(health_router)
     app.include_router(auth_router)
     app.include_router(org_router)
+    app.include_router(companies_router)
+    app.include_router(contacts_router)
 
     return app

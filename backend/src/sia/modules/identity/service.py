@@ -15,6 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from sia.core.config import Settings
+from sia.core.db import violates_constraint
 from sia.core.errors import (
     ConflictError,
     ForbiddenError,
@@ -134,12 +135,6 @@ def _now() -> datetime:
     return datetime.now(UTC)
 
 
-def _violates(exc: IntegrityError, constraint: str) -> bool:
-    """Whether an IntegrityError was caused by one specific named constraint."""
-    driver_error = getattr(exc.orig, "__cause__", None)  # asyncpg's exception
-    return getattr(driver_error, "constraint_name", None) == constraint
-
-
 def _issue_session(
     db: AsyncSession,
     settings: Settings,
@@ -186,7 +181,7 @@ async def signup(
     try:
         await db.flush()
     except IntegrityError as exc:
-        if _violates(exc, "uq_users_email"):  # concurrent signup with the same email
+        if violates_constraint(exc, "uq_users_email"):  # concurrent signup with the same email
             raise EmailTakenError() from exc
         raise
     db.add(Membership(organization_id=organization.id, user_id=user.id, role=Role.OWNER))

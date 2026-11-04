@@ -12,6 +12,7 @@ from typing import Annotated, Any, ClassVar
 
 from fastapi import Depends, Request
 from sqlalchemy import DateTime, MetaData, func, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -89,3 +90,10 @@ async def _get_session(request: Request) -> AsyncIterator[AsyncSession]:
 
 
 DbSession = Annotated[AsyncSession, Depends(_get_session)]
+
+
+def violates_constraint(exc: IntegrityError, constraint: str) -> bool:
+    """Whether an IntegrityError was caused by one specific named constraint. Lets callers
+    translate expected violations (e.g. a duplicate email) without masking unexpected ones."""
+    driver_error = getattr(exc.orig, "__cause__", None)  # asyncpg's exception
+    return getattr(driver_error, "constraint_name", None) == constraint

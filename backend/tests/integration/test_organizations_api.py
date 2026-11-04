@@ -9,20 +9,11 @@ World (built per test):
 import uuid
 from dataclasses import dataclass
 
-import httpx
 import pytest
-from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from tests.integration.conftest import ClientFactory
-from tests.integration.test_auth_api import signup
-
-
-@dataclass
-class Actor:
-    client: httpx.AsyncClient
-    user_id: uuid.UUID
-    org_id: uuid.UUID  # the organisation created at signup
+from tests.integration.helpers import Actor, add_member, make_actor, switch
 
 
 @dataclass
@@ -32,33 +23,11 @@ class World:
     carol: Actor
 
 
-async def _actor(make_client: ClientFactory, email: str, org: str) -> Actor:
-    client = make_client()
-    me = await signup(client, email=email, org=org)
-    return Actor(client, uuid.UUID(me["user"]["id"]), uuid.UUID(me["active_organization"]["id"]))
-
-
-async def add_member(
-    owner_engine: AsyncEngine, org_id: uuid.UUID, user_id: uuid.UUID, role: str
-) -> None:
-    async with owner_engine.begin() as conn:
-        await conn.execute(
-            text("INSERT INTO memberships (organization_id, user_id, role) VALUES (:o, :u, :r)"),
-            {"o": org_id, "u": user_id, "r": role},
-        )
-
-
-async def switch(actor: Actor, org_id: uuid.UUID) -> httpx.Response:
-    return await actor.client.put(
-        "/auth/session/organization", json={"organization_id": str(org_id)}
-    )
-
-
 @pytest.fixture
 async def world(make_client: ClientFactory, owner_engine: AsyncEngine) -> World:
-    alice = await _actor(make_client, "alice@acme.example.com", "Acme")
-    bob = await _actor(make_client, "bob@globex.example.com", "Globex")
-    carol = await _actor(make_client, "carol@carol.example.com", "Carol Co")
+    alice = await make_actor(make_client(), "alice@acme.example.com", "Acme")
+    bob = await make_actor(make_client(), "bob@globex.example.com", "Globex")
+    carol = await make_actor(make_client(), "carol@carol.example.com", "Carol Co")
     await add_member(owner_engine, alice.org_id, carol.user_id, "member")
     assert (await switch(carol, alice.org_id)).status_code == 200
     return World(alice, bob, carol)
