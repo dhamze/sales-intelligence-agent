@@ -23,7 +23,7 @@ React + TypeScript + Vite · Claude API · Docker · GitHub Actions
 
 - [uv](https://docs.astral.sh/uv/) (Python package and project manager)
 - Docker Desktop
-- Node.js 22+ (frontend, from Phase 4)
+- Node.js 22+
 
 ## Getting started
 
@@ -47,7 +47,15 @@ uv run alembic -c backend/alembic.ini upgrade head
 
 # 6. Run the API with auto-reload
 uv run uvicorn sia.main:create_app --factory --reload
+
+# 7. In a second terminal: install and run the web app
+cd frontend
+npm ci
+npm run dev
 ```
+
+Open <http://localhost:5173> and create an account. The dev server forwards `/api/*` to the
+backend, so the browser talks to a single origin and the session cookie works as in production.
 
 Then open <http://127.0.0.1:8000/docs> for interactive API docs, or
 <http://127.0.0.1:8000/health/ready> to confirm the database connection.
@@ -71,6 +79,8 @@ Then open <http://127.0.0.1:8000/docs> for interactive API docs, or
 | Delete all local database data | `docker compose down -v` |
 | Add a backend dependency | `uv add --package sia-backend <name>` |
 | Add a dev tool | `uv add --dev <name>` |
+| Frontend: type check / lint / unit tests | `npm run typecheck` · `npm run lint` · `npm test` (in `frontend/`) |
+| Regenerate frontend API types after backend changes | `npm run api:sync` (in `frontend/`) |
 
 ## Repository layout
 
@@ -89,6 +99,11 @@ backend/
   migrations/       Alembic database migrations
   tests/unit/       Fast tests, no database
   tests/integration/  Tests against a real PostgreSQL
+frontend/
+  src/routes/       Pages (file-based routing)
+  src/features/     Feature code (auth, shell, companies, ...)
+  src/components/   Shared UI components
+  src/lib/api/      Typed API client generated from the backend's OpenAPI schema
 infra/postgres/     Database init scripts
 docs/               Product brief, architecture, ADRs
 compose.yaml        Local infrastructure (PostgreSQL + pgvector)

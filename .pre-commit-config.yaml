@@ -38,3 +38,9 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+      - id: frontend
+        name: frontend (types, lint, format)
+        entry: bash -c 'cd frontend && npm run --silent typecheck && npm run --silent lint && npm run --silent format:check'
+        language: system
+        files: ^frontend/
+        pass_filenames: false

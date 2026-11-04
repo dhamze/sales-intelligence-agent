@@ -13,3 +13,4 @@ supersedes the old one.
 | [0005](0005-react-vite-spa.md) | React + Vite SPA instead of Next.js | Accepted |
 | [0006](0006-direct-llm-sdk.md) | Direct LLM SDK instead of an orchestration framework | Accepted |
 | [0007](0007-database-roles-and-rls-mechanics.md) | Database roles and Row-Level Security mechanics | Accepted |
+| [0008](0008-fuzzy-search-under-rls.md) | Fuzzy search under Row-Level Security | Accepted |
