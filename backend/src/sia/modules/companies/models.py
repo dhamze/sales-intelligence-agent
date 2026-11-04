@@ -10,6 +10,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    SmallInteger,
     String,
     Text,
     UniqueConstraint,
@@ -55,6 +56,14 @@ class Company(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         Index("ix_companies_org_name_id", "organization_id", "name", "id"),
         Index("ix_companies_org_created_at_id", "organization_id", "created_at", "id"),
         Index("ix_companies_org_updated_at_id", "organization_id", "updated_at", "id"),
+        # Sorting/filtering by ICP fit; unscored companies (NULL) sort as -1, i.e. last.
+        Index(
+            "ix_companies_org_icp_score_id",
+            "organization_id",
+            text("coalesce(icp_score, -1)"),
+            "id",
+        ),
+        CheckConstraint("icp_score BETWEEN 0 AND 100", name="icp_score_range"),
         # Fuzzy search (pg_trgm): typo-tolerant matching on name and domain.
         Index(
             "ix_companies_name_trgm",
@@ -86,6 +95,9 @@ class Company(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         JSONB, default=dict, server_default=text("'{}'::jsonb")
     )
     source: Mapped[RecordSource] = source_column()
+    # ICP fit 0-100, copied from company_scores for fast list sorting/filtering. Written only by
+    # repository.set_icp_scores() (scoring keeps it in sync); NULL = not scored / no ICP.
+    icp_score: Mapped[int | None] = mapped_column(SmallInteger)
     created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL")
     )

@@ -29,6 +29,7 @@ from sia.modules.imports.mapping import ATTRIBUTES, FIELDS, EntityType, Prepared
 from sia.modules.imports.models import Import, ImportStatus
 from sia.modules.imports.parsing import ImportFileError, ParsedCsv, parse_csv
 from sia.modules.imports.schemas import ImportOut, ImportPreview, RowErrorOut
+from sia.modules.scoring import service as scoring
 
 logger = structlog.get_logger(__name__)
 
@@ -230,6 +231,9 @@ async def commit_import(
     else:
         await _link_contacts_to_companies(db, tenant, prepared)
         created, updated = await contacts.import_contacts(db, tenant, prepared.records)
+
+    # Many companies may have changed (or gained contacts): rescore in the background.
+    await scoring.request_full_rescore(db, tenant.organization_id)
 
     record.mapping = chosen
     record.status = ImportStatus.COMPLETED

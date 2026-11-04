@@ -29,6 +29,7 @@ from sia.modules.enrichment.router import router as enrichment_router
 from sia.modules.health.router import router as health_router
 from sia.modules.identity.router import auth_router, org_router
 from sia.modules.imports.router import router as imports_router
+from sia.modules.scoring.router import router as scoring_router
 
 logger = structlog.get_logger(__name__)
 
@@ -77,5 +78,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(contacts_router)
     app.include_router(imports_router)
     app.include_router(enrichment_router)
+    app.include_router(scoring_router)
 
     return app

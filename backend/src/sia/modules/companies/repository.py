@@ -16,6 +16,7 @@ from sqlalchemy import (
     literal_column,
     or_,
     select,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -38,6 +39,12 @@ def relevance(q: str) -> ColumnElement[float]:
     )
 
 
+# Unscored companies (NULL) sort as -1; matches the expression in ix_companies_org_icp_score_id.
+ICP_SORT = func.coalesce(Company.icp_score, -1)
+
+# Score range per tier (inclusive), matching sia.modules.scoring.engine.tier_for.
+TIER_RANGES = {"A": (75, 100), "B": (50, 74), "C": (25, 49), "D": (0, 24)}
+
 _SORTS: dict[str, tuple[Any, bool, type]] = {
     "name": (Company.name, False, str),
     "-name": (Company.name, True, str),
@@ -45,6 +52,8 @@ _SORTS: dict[str, tuple[Any, bool, type]] = {
     "-created_at": (Company.created_at, True, datetime),
     "updated_at": (Company.updated_at, False, datetime),
     "-updated_at": (Company.updated_at, True, datetime),
+    "icp_score": (ICP_SORT, False, int),
+    "-icp_score": (ICP_SORT, True, int),
 }
 
 
@@ -80,6 +89,10 @@ def _conditions(organization_id: uuid.UUID, params: CompanyListParams) -> list[C
         conditions.append(Company.employee_count <= params.employees_max)
     if params.source is not None:
         conditions.append(Company.source == params.source)
+    if params.tier:
+        conditions.append(
+            or_(*[ICP_SORT.between(*TIER_RANGES[t]) for t in sorted(set(params.tier))])
+        )
     if params.created_after is not None:
         conditions.append(Company.created_at >= params.created_after)
     if params.created_before is not None:
@@ -222,3 +235,35 @@ async def names_by_id(
         )
     )
     return {row.id: row.name for row in rows}
+
+
+# --- ICP scores (written only by the scoring module) -------------------------------------------
+
+
+async def set_icp_scores(
+    db: AsyncSession, organization_id: uuid.UUID, scores: dict[uuid.UUID, int | None]
+) -> None:
+    """Copy scores onto companies for sorting/filtering. Does NOT touch `updated_at`: a new
+    score is not an edit of the company."""
+    if not scores:
+        return
+    ids = list(scores)
+    await db.execute(
+        text(
+            "UPDATE companies AS c SET icp_score = s.score "
+            "FROM unnest(CAST(:ids AS uuid[]), CAST(:scores AS smallint[])) AS s(id, score) "
+            "WHERE c.organization_id = :org AND c.id = s.id "
+            "AND c.icp_score IS DISTINCT FROM s.score"
+        ),
+        {"ids": ids, "scores": [scores[i] for i in ids], "org": organization_id},
+    )
+
+
+async def clear_icp_scores(db: AsyncSession, organization_id: uuid.UUID) -> None:
+    await db.execute(
+        text(
+            "UPDATE companies SET icp_score = NULL "
+            "WHERE organization_id = :org AND icp_score IS NOT NULL"
+        ),
+        {"org": organization_id},
+    )

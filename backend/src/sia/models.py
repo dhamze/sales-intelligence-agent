@@ -9,6 +9,7 @@ from sia.modules.contacts import models as contacts_models
 from sia.modules.enrichment import models as enrichment_models
 from sia.modules.identity import models as identity_models
 from sia.modules.imports import models as imports_models
+from sia.modules.scoring import models as scoring_models
 
 __all__ = [
     "ai_models",
@@ -17,4 +18,5 @@ __all__ = [
     "enrichment_models",
     "identity_models",
     "imports_models",
+    "scoring_models",
 ]

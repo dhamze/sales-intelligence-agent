@@ -49,6 +49,8 @@ export function company(overrides: Partial<Schemas["CompanyOut"]> = {}): Schemas
     description: null,
     attributes: {},
     source: "manual",
+    icp_score: null,
+    icp_tier: null,
     created_at: "2026-11-01T10:00:00Z",
     updated_at: "2026-11-01T10:00:00Z",
     ...overrides,

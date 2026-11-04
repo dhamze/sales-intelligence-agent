@@ -44,6 +44,7 @@ from sia.modules.enrichment.schemas import (
     EnrichmentUsageOut,
 )
 from sia.modules.identity.service import TenantContext
+from sia.modules.scoring import service as scoring
 from sia.worker.runtime import tenant_session
 
 logger = structlog.get_logger(__name__)
@@ -363,6 +364,7 @@ async def _store(
             if v
         },
     )
+    await scoring.rescore_companies(db, organization_id, [company_id])
     logger.info(
         "enrichment_stored",
         company_id=str(company_id),

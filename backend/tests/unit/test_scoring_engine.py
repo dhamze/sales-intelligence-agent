@@ -5,6 +5,8 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
+from sia.modules.companies.repository import TIER_RANGES
+from sia.modules.scoring.countries import same_country
 from sia.modules.scoring.criteria import ICPDefinition
 from sia.modules.scoring.engine import CompanyFacts, Status, score_company, tier_for
 
@@ -30,6 +32,13 @@ SIZE_50_500 = {"kind": "size", "min_employees": 50, "max_employees": 500}
 )
 def test_tier_boundaries(score: int, tier: str) -> None:
     assert tier_for(score) == tier
+
+
+def test_sql_tier_filter_matches_the_engine() -> None:
+    """The company list filters tiers by score range in SQL; it must agree with tier_for."""
+    for score in range(101):
+        (tier,) = [t for t, (low, high) in TIER_RANGES.items() if low <= score <= high]
+        assert tier == tier_for(score)
 
 
 # --- individual criteria -------------------------------------------------------------------
@@ -110,6 +119,33 @@ def test_country() -> None:
     assert only(criterion, CompanyFacts(country="de"))[0] is Status.MATCH
     assert only(criterion, CompanyFacts(ai_country="CH"))[0] is Status.MATCH
     assert only(criterion, CompanyFacts(country="US"))[0] is Status.MISS
+
+
+@pytest.mark.parametrize(
+    ("a", "b"),
+    [
+        ("DE", "Germany"),
+        ("deutschland", "DE"),
+        ("U.S.A.", "United States"),
+        ("usa", "US"),
+        ("GBR", "United Kingdom"),
+        ("Österreich", "AT"),
+        ("  the netherlands ", "NL"),
+        ("Atlantis", "atlantis"),  # unknown names still compare case-insensitively
+    ],
+)
+def test_country_spellings_match(a: str, b: str) -> None:
+    assert same_country(a, b)
+
+
+def test_different_countries_do_not_match() -> None:
+    assert not same_country("DE", "AT")
+    assert not same_country("Atlantis", "Lemuria")
+
+
+def test_country_criterion_accepts_names_and_codes() -> None:
+    criterion = {"kind": "country", "countries": ["DE"]}
+    assert only(criterion, CompanyFacts(ai_country="Germany"))[0] is Status.MATCH
 
 
 def test_business_model() -> None:

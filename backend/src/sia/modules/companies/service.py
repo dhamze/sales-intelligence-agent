@@ -21,6 +21,7 @@ from sia.modules.companies.schemas import (
     FacetValue,
 )
 from sia.modules.identity.service import TenantContext
+from sia.modules.scoring import service as scoring
 
 logger = structlog.get_logger(__name__)
 
@@ -114,6 +115,7 @@ async def create_company(
     )
     db.add(company)
     await _flush_or_domain_taken(db)
+    await scoring.rescore_companies(db, tenant.organization_id, [company.id])
     await db.refresh(company)  # load server-generated timestamps
     out = CompanyOut.model_validate(company)
     await db.commit()
@@ -133,6 +135,7 @@ async def update_company(
     for field, value in changes.items():
         setattr(company, field, value)
     await _flush_or_domain_taken(db)
+    await scoring.rescore_companies(db, tenant.organization_id, [company.id])
     await db.refresh(company)
     out = CompanyOut.model_validate(company)
     await db.commit()

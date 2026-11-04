@@ -21,6 +21,7 @@ from sia.modules.contacts.schemas import (
     ContactUpdate,
 )
 from sia.modules.identity.service import TenantContext
+from sia.modules.scoring import service as scoring
 
 logger = structlog.get_logger(__name__)
 
@@ -140,6 +141,7 @@ async def create_contact(
     )
     db.add(contact)
     await _flush(db)
+    await scoring.rescore_companies(db, tenant.organization_id, [contact.company_id])
     await db.refresh(contact)  # load full_name and timestamps computed by the database
     out = (await _outputs(db, tenant, [contact]))[contact.id]
     await db.commit()
@@ -161,9 +163,13 @@ async def update_contact(
         email=changes.get("email"),
         except_id=contact.id,
     )
+    previous_company_id = contact.company_id
     for field, value in changes.items():
         setattr(contact, field, value)
     await _flush(db)
+    await scoring.rescore_companies(
+        db, tenant.organization_id, [previous_company_id, contact.company_id]
+    )
     await db.refresh(contact)
     out = (await _outputs(db, tenant, [contact]))[contact.id]
     await db.commit()
@@ -176,6 +182,8 @@ async def delete_contact(db: AsyncSession, tenant: TenantContext, contact_id: uu
     if contact is None:
         raise _not_found()
     await db.delete(contact)
+    await db.flush()
+    await scoring.rescore_companies(db, tenant.organization_id, [contact.company_id])
     await db.commit()
     logger.info("contact_deleted", contact_id=str(contact_id))
 

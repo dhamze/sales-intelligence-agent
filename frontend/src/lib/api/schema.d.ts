@@ -180,6 +180,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/companies/{company_id}/score": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Company Score
+         * @description The company's ICP fit with a per-criterion explanation; null without an ICP.
+         */
+        get: operations["company_score_companies__company_id__score_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/contacts": {
         parameters: {
             query?: never;
@@ -279,6 +299,74 @@ export interface paths {
         get: operations["ready_health_ready_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/icp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Icp
+         * @description The organisation's ideal customer profile, or null when none is defined yet.
+         */
+        get: operations["get_icp_icp_get"];
+        /**
+         * Save Icp
+         * @description Create or replace the ICP (admins). All companies are rescored in the background.
+         */
+        put: operations["save_icp_icp_put"];
+        post?: never;
+        /**
+         * Delete Icp
+         * @description Remove the ICP and every score (admins).
+         */
+        delete: operations["delete_icp_icp_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/icp/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview Icp
+         * @description How an (unsaved) ICP would rate the current companies. Nothing is stored.
+         */
+        post: operations["preview_icp_icp_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/icp/rescore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rescore
+         * @description Recalculate every company's score in the background (admins).
+         */
+        post: operations["rescore_icp_rescore_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -424,6 +512,28 @@ export interface components {
              */
             file: string;
         };
+        /** BusinessModelCriterion */
+        BusinessModelCriterion: {
+            /**
+             * Importance
+             * @description 1 = minor ... 5 = critical
+             * @default 3
+             */
+            importance: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "business_model";
+            /** Models */
+            models: ("B2B" | "B2C" | "B2B and B2C" | "Marketplace")[];
+            /**
+             * Must Have
+             * @description Failing it disqualifies the company
+             * @default false
+             */
+            must_have: boolean;
+        };
         /** CompanyCreate */
         CompanyCreate: {
             /** Attributes */
@@ -484,6 +594,13 @@ export interface components {
             /** Employee Count */
             employee_count: number | null;
             /**
+             * Icp Score
+             * @description ICP fit 0-100; null when not scored or no ICP
+             */
+            icp_score: number | null;
+            /** Icp Tier */
+            readonly icp_tier: ("A" | "B" | "C" | "D") | null;
+            /**
              * Id
              * Format: uuid
              */
@@ -528,6 +645,31 @@ export interface components {
             sources: {
                 [key: string]: unknown;
             }[];
+        };
+        /** CompanyScoreOut */
+        CompanyScoreOut: {
+            /** Breakdown */
+            breakdown: components["schemas"]["CriterionOut"][];
+            /** Completeness */
+            completeness: number;
+            /** Current */
+            current: boolean;
+            /** Disqualified */
+            disqualified: boolean;
+            /** Icp Version */
+            icp_version: number;
+            /** Score */
+            score: number;
+            /**
+             * Scored At
+             * Format: date-time
+             */
+            scored_at: string;
+            /**
+             * Tier
+             * @enum {string}
+             */
+            tier: "A" | "B" | "C" | "D";
         };
         /**
          * CompanyUpdate
@@ -630,6 +772,67 @@ export interface components {
             /** Title */
             title?: string | null;
         };
+        /** ContactsCriterion */
+        ContactsCriterion: {
+            /**
+             * Importance
+             * @description 1 = minor ... 5 = critical
+             * @default 3
+             */
+            importance: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "has_contacts";
+            /**
+             * Min Contacts
+             * @default 1
+             */
+            min_contacts: number;
+            /**
+             * Must Have
+             * @description Failing it disqualifies the company
+             * @default false
+             */
+            must_have: boolean;
+        };
+        /** CountryCriterion */
+        CountryCriterion: {
+            /** Countries */
+            countries: string[];
+            /**
+             * Importance
+             * @description 1 = minor ... 5 = critical
+             * @default 3
+             */
+            importance: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "country";
+            /**
+             * Must Have
+             * @description Failing it disqualifies the company
+             * @default false
+             */
+            must_have: boolean;
+        };
+        /** CriterionOut */
+        CriterionOut: {
+            /** Detail */
+            detail: string;
+            /** Kind */
+            kind: string;
+            /** Max Points */
+            max_points: number;
+            /** Must Have */
+            must_have: boolean;
+            /** Points */
+            points: number;
+            status: components["schemas"]["Status"];
+        };
         /** EnrichRequest */
         EnrichRequest: {
             /** Company Ids */
@@ -695,6 +898,36 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** ICPDefinition */
+        ICPDefinition: {
+            /** Criteria */
+            criteria: (components["schemas"]["IndustryCriterion"] | components["schemas"]["SizeCriterion"] | components["schemas"]["CountryCriterion"] | components["schemas"]["BusinessModelCriterion"] | components["schemas"]["KeywordCriterion"] | components["schemas"]["ContactsCriterion"])[];
+        };
+        /** ICPOut */
+        ICPOut: {
+            definition: components["schemas"]["ICPDefinition"];
+            status: components["schemas"]["ScoringStatus"];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /**
+         * ICPPreview
+         * @description What the ICP would do to the current companies, without saving anything.
+         */
+        ICPPreview: {
+            /** Average Completeness */
+            average_completeness: number;
+            tiers: components["schemas"]["TierCounts"];
+            /** Top */
+            top: components["schemas"]["PreviewCompany"][];
+            /** Total Companies */
+            total_companies: number;
         };
         /** ImportMappingRequest */
         ImportMappingRequest: {
@@ -842,6 +1075,50 @@ export interface components {
          * @enum {string}
          */
         ImportStatus: "preview" | "completed";
+        /** IndustryCriterion */
+        IndustryCriterion: {
+            /**
+             * Importance
+             * @description 1 = minor ... 5 = critical
+             * @default 3
+             */
+            importance: number;
+            /** Industries */
+            industries: string[];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "industry";
+            /**
+             * Must Have
+             * @description Failing it disqualifies the company
+             * @default false
+             */
+            must_have: boolean;
+        };
+        /** KeywordCriterion */
+        KeywordCriterion: {
+            /**
+             * Importance
+             * @description 1 = minor ... 5 = critical
+             * @default 3
+             */
+            importance: number;
+            /** Keywords */
+            keywords: string[];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "keywords";
+            /**
+             * Must Have
+             * @description Failing it disqualifies the company
+             * @default false
+             */
+            must_have: boolean;
+        };
         /** LivenessResponse */
         LivenessResponse: {
             /**
@@ -923,6 +1200,23 @@ export interface components {
             /** Next Cursor */
             next_cursor?: string | null;
         };
+        /** PreviewCompany */
+        PreviewCompany: {
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /** Name */
+            name: string;
+            /** Score */
+            score: number;
+            /**
+             * Tier
+             * @enum {string}
+             */
+            tier: "A" | "B" | "C" | "D";
+        };
         /** ReadinessResponse */
         ReadinessResponse: {
             /** Checks */
@@ -962,6 +1256,13 @@ export interface components {
          * @enum {string}
          */
         RunStatus: "queued" | "running" | "succeeded" | "failed";
+        /** ScoringStatus */
+        ScoringStatus: {
+            /** Scored Current */
+            scored_current: number;
+            /** Total Companies */
+            total_companies: number;
+        };
         /** SignupRequest */
         SignupRequest: {
             /**
@@ -979,6 +1280,35 @@ export interface components {
              */
             password: string;
         };
+        /** SizeCriterion */
+        SizeCriterion: {
+            /**
+             * Importance
+             * @description 1 = minor ... 5 = critical
+             * @default 3
+             */
+            importance: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "size";
+            /** Max Employees */
+            max_employees?: number | null;
+            /** Min Employees */
+            min_employees?: number | null;
+            /**
+             * Must Have
+             * @description Failing it disqualifies the company
+             * @default false
+             */
+            must_have: boolean;
+        };
+        /**
+         * Status
+         * @enum {string}
+         */
+        Status: "match" | "partial" | "miss" | "unknown";
         /** SwitchOrganizationRequest */
         SwitchOrganizationRequest: {
             /**
@@ -986,6 +1316,29 @@ export interface components {
              * Format: uuid
              */
             organization_id: string;
+        };
+        /** TierCounts */
+        TierCounts: {
+            /**
+             * A
+             * @default 0
+             */
+            A: number;
+            /**
+             * B
+             * @default 0
+             */
+            B: number;
+            /**
+             * C
+             * @default 0
+             */
+            C: number;
+            /**
+             * D
+             * @default 0
+             */
+            D: number;
         };
         /** UpdateMemberRequest */
         UpdateMemberRequest: {
@@ -1177,10 +1530,12 @@ export interface operations {
                 employees_min?: number | null;
                 employees_max?: number | null;
                 source?: components["schemas"]["RecordSource"] | null;
+                /** @description ICP fit tiers */
+                tier?: ("A" | "B" | "C" | "D")[];
                 created_after?: string | null;
                 created_before?: string | null;
                 /** @description Default: relevance when searching, otherwise -created_at */
-                sort?: ("name" | "-name" | "created_at" | "-created_at" | "updated_at" | "-updated_at" | "relevance") | null;
+                sort?: ("name" | "-name" | "created_at" | "-created_at" | "updated_at" | "-updated_at" | "icp_score" | "-icp_score" | "relevance") | null;
                 limit?: number;
                 cursor?: string | null;
             };
@@ -1407,6 +1762,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CompanyEnrichmentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    company_score_companies__company_id__score_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                company_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyScoreOut"] | null;
                 };
             };
             /** @description Validation Error */
@@ -1683,6 +2069,130 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReadinessResponse"];
+                };
+            };
+        };
+    };
+    get_icp_icp_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ICPOut"] | null;
+                };
+            };
+        };
+    };
+    save_icp_icp_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ICPDefinition"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ICPOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_icp_icp_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    preview_icp_icp_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ICPDefinition"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ICPPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rescore_icp_rescore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };

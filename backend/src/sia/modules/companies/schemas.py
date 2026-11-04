@@ -8,6 +8,7 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    computed_field,
     field_validator,
     model_validator,
 )
@@ -24,6 +25,7 @@ from sia.modules.companies.models import (
     COMPANY_NAME_MAX,
     RecordSource,
 )
+from sia.modules.scoring.engine import Tier, tier_for
 
 MAX_ATTRIBUTES = 100
 MAX_EMPLOYEES = 10_000_000
@@ -115,8 +117,14 @@ class CompanyOut(BaseModel):
     description: str | None
     attributes: dict[str, Any]
     source: RecordSource
+    icp_score: int | None = Field(description="ICP fit 0-100; null when not scored or no ICP")
     created_at: datetime
     updated_at: datetime
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def icp_tier(self) -> Tier | None:
+        return tier_for(self.icp_score) if self.icp_score is not None else None
 
 
 class FacetValue(BaseModel):
@@ -132,7 +140,15 @@ class CompanyFacets(BaseModel):
 
 
 CompanySort = Literal[
-    "name", "-name", "created_at", "-created_at", "updated_at", "-updated_at", "relevance"
+    "name",
+    "-name",
+    "created_at",
+    "-created_at",
+    "updated_at",
+    "-updated_at",
+    "icp_score",
+    "-icp_score",
+    "relevance",
 ]
 
 
@@ -148,6 +164,7 @@ class CompanyListParams(BaseModel):
     employees_min: int | None = Field(default=None, ge=0)
     employees_max: int | None = Field(default=None, ge=0)
     source: RecordSource | None = None
+    tier: list[Tier] = Field(default_factory=list, max_length=4, description="ICP fit tiers")
     created_after: datetime | None = None
     created_before: datetime | None = None
     sort: CompanySort | None = Field(

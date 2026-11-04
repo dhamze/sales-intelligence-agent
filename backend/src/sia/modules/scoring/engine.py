@@ -19,6 +19,7 @@ from dataclasses import asdict, dataclass, field
 from enum import StrEnum
 from typing import Any, Literal
 
+from sia.modules.scoring.countries import same_country
 from sia.modules.scoring.criteria import (
     BusinessModelCriterion,
     ContactsCriterion,
@@ -164,7 +165,7 @@ def _country(c: CountryCriterion, f: CompanyFacts) -> tuple[Status, str]:
     value, source = _pick(f.country, f.ai_country)
     if value is None:
         return Status.UNKNOWN, "Country unknown (enrich to fill in)"
-    if any(_same(value, wanted) for wanted in c.countries):
+    if any(same_country(value, wanted) for wanted in c.countries):
         return Status.MATCH, f"{value}{source} is in your ICP ({_join(c.countries)})"
     return Status.MISS, f"{value}{source} is not in your ICP ({_join(c.countries)})"
 

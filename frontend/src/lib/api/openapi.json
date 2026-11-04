@@ -20,6 +20,51 @@
         "title": "Body_upload_imports_post",
         "type": "object"
       },
+      "BusinessModelCriterion": {
+        "additionalProperties": false,
+        "properties": {
+          "importance": {
+            "default": 3,
+            "description": "1 = minor ... 5 = critical",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Importance",
+            "type": "integer"
+          },
+          "kind": {
+            "const": "business_model",
+            "default": "business_model",
+            "title": "Kind",
+            "type": "string"
+          },
+          "models": {
+            "items": {
+              "enum": [
+                "B2B",
+                "B2C",
+                "B2B and B2C",
+                "Marketplace"
+              ],
+              "type": "string"
+            },
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Models",
+            "type": "array"
+          },
+          "must_have": {
+            "default": false,
+            "description": "Failing it disqualifies the company",
+            "title": "Must Have",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "models"
+        ],
+        "title": "BusinessModelCriterion",
+        "type": "object"
+      },
       "CompanyCreate": {
         "additionalProperties": false,
         "properties": {
@@ -271,6 +316,36 @@
             ],
             "title": "Employee Count"
           },
+          "icp_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "ICP fit 0-100; null when not scored or no ICP",
+            "title": "Icp Score"
+          },
+          "icp_tier": {
+            "anyOf": [
+              {
+                "enum": [
+                  "A",
+                  "B",
+                  "C",
+                  "D"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "readOnly": true,
+            "title": "Icp Tier"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -323,8 +398,10 @@
           "description",
           "attributes",
           "source",
+          "icp_score",
           "created_at",
-          "updated_at"
+          "updated_at",
+          "icp_tier"
         ],
         "title": "CompanyOut",
         "type": "object"
@@ -373,6 +450,64 @@
           "generated_at"
         ],
         "title": "CompanyProfileOut",
+        "type": "object"
+      },
+      "CompanyScoreOut": {
+        "properties": {
+          "breakdown": {
+            "items": {
+              "$ref": "#/components/schemas/CriterionOut"
+            },
+            "title": "Breakdown",
+            "type": "array"
+          },
+          "completeness": {
+            "title": "Completeness",
+            "type": "number"
+          },
+          "current": {
+            "title": "Current",
+            "type": "boolean"
+          },
+          "disqualified": {
+            "title": "Disqualified",
+            "type": "boolean"
+          },
+          "icp_version": {
+            "title": "Icp Version",
+            "type": "integer"
+          },
+          "score": {
+            "title": "Score",
+            "type": "integer"
+          },
+          "scored_at": {
+            "format": "date-time",
+            "title": "Scored At",
+            "type": "string"
+          },
+          "tier": {
+            "enum": [
+              "A",
+              "B",
+              "C",
+              "D"
+            ],
+            "title": "Tier",
+            "type": "string"
+          }
+        },
+        "required": [
+          "score",
+          "tier",
+          "disqualified",
+          "completeness",
+          "breakdown",
+          "icp_version",
+          "current",
+          "scored_at"
+        ],
+        "title": "CompanyScoreOut",
         "type": "object"
       },
       "CompanyUpdate": {
@@ -821,6 +956,118 @@
         "title": "ContactUpdate",
         "type": "object"
       },
+      "ContactsCriterion": {
+        "additionalProperties": false,
+        "properties": {
+          "importance": {
+            "default": 3,
+            "description": "1 = minor ... 5 = critical",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Importance",
+            "type": "integer"
+          },
+          "kind": {
+            "const": "has_contacts",
+            "default": "has_contacts",
+            "title": "Kind",
+            "type": "string"
+          },
+          "min_contacts": {
+            "default": 1,
+            "maximum": 1000.0,
+            "minimum": 1.0,
+            "title": "Min Contacts",
+            "type": "integer"
+          },
+          "must_have": {
+            "default": false,
+            "description": "Failing it disqualifies the company",
+            "title": "Must Have",
+            "type": "boolean"
+          }
+        },
+        "title": "ContactsCriterion",
+        "type": "object"
+      },
+      "CountryCriterion": {
+        "additionalProperties": false,
+        "properties": {
+          "countries": {
+            "items": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Countries",
+            "type": "array"
+          },
+          "importance": {
+            "default": 3,
+            "description": "1 = minor ... 5 = critical",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Importance",
+            "type": "integer"
+          },
+          "kind": {
+            "const": "country",
+            "default": "country",
+            "title": "Kind",
+            "type": "string"
+          },
+          "must_have": {
+            "default": false,
+            "description": "Failing it disqualifies the company",
+            "title": "Must Have",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "countries"
+        ],
+        "title": "CountryCriterion",
+        "type": "object"
+      },
+      "CriterionOut": {
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "max_points": {
+            "title": "Max Points",
+            "type": "integer"
+          },
+          "must_have": {
+            "title": "Must Have",
+            "type": "boolean"
+          },
+          "points": {
+            "title": "Points",
+            "type": "number"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status"
+          }
+        },
+        "required": [
+          "kind",
+          "status",
+          "points",
+          "max_points",
+          "must_have",
+          "detail"
+        ],
+        "title": "CriterionOut",
+        "type": "object"
+      },
       "EnrichRequest": {
         "additionalProperties": false,
         "properties": {
@@ -981,6 +1228,113 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "ICPDefinition": {
+        "additionalProperties": false,
+        "properties": {
+          "criteria": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "business_model": "#/components/schemas/BusinessModelCriterion",
+                  "country": "#/components/schemas/CountryCriterion",
+                  "has_contacts": "#/components/schemas/ContactsCriterion",
+                  "industry": "#/components/schemas/IndustryCriterion",
+                  "keywords": "#/components/schemas/KeywordCriterion",
+                  "size": "#/components/schemas/SizeCriterion"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/IndustryCriterion"
+                },
+                {
+                  "$ref": "#/components/schemas/SizeCriterion"
+                },
+                {
+                  "$ref": "#/components/schemas/CountryCriterion"
+                },
+                {
+                  "$ref": "#/components/schemas/BusinessModelCriterion"
+                },
+                {
+                  "$ref": "#/components/schemas/KeywordCriterion"
+                },
+                {
+                  "$ref": "#/components/schemas/ContactsCriterion"
+                }
+              ]
+            },
+            "maxItems": 6,
+            "minItems": 1,
+            "title": "Criteria",
+            "type": "array"
+          }
+        },
+        "required": [
+          "criteria"
+        ],
+        "title": "ICPDefinition",
+        "type": "object"
+      },
+      "ICPOut": {
+        "properties": {
+          "definition": {
+            "$ref": "#/components/schemas/ICPDefinition"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ScoringStatus"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "definition",
+          "version",
+          "updated_at",
+          "status"
+        ],
+        "title": "ICPOut",
+        "type": "object"
+      },
+      "ICPPreview": {
+        "description": "What the ICP would do to the current companies, without saving anything.",
+        "properties": {
+          "average_completeness": {
+            "title": "Average Completeness",
+            "type": "number"
+          },
+          "tiers": {
+            "$ref": "#/components/schemas/TierCounts"
+          },
+          "top": {
+            "items": {
+              "$ref": "#/components/schemas/PreviewCompany"
+            },
+            "title": "Top",
+            "type": "array"
+          },
+          "total_companies": {
+            "title": "Total Companies",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total_companies",
+          "tiers",
+          "top",
+          "average_completeness"
+        ],
+        "title": "ICPPreview",
         "type": "object"
       },
       "ImportMappingRequest": {
@@ -1286,6 +1640,88 @@
         "title": "ImportStatus",
         "type": "string"
       },
+      "IndustryCriterion": {
+        "additionalProperties": false,
+        "properties": {
+          "importance": {
+            "default": 3,
+            "description": "1 = minor ... 5 = critical",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Importance",
+            "type": "integer"
+          },
+          "industries": {
+            "items": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Industries",
+            "type": "array"
+          },
+          "kind": {
+            "const": "industry",
+            "default": "industry",
+            "title": "Kind",
+            "type": "string"
+          },
+          "must_have": {
+            "default": false,
+            "description": "Failing it disqualifies the company",
+            "title": "Must Have",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "industries"
+        ],
+        "title": "IndustryCriterion",
+        "type": "object"
+      },
+      "KeywordCriterion": {
+        "additionalProperties": false,
+        "properties": {
+          "importance": {
+            "default": 3,
+            "description": "1 = minor ... 5 = critical",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Importance",
+            "type": "integer"
+          },
+          "keywords": {
+            "items": {
+              "maxLength": 50,
+              "minLength": 2,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Keywords",
+            "type": "array"
+          },
+          "kind": {
+            "const": "keywords",
+            "default": "keywords",
+            "title": "Kind",
+            "type": "string"
+          },
+          "must_have": {
+            "default": false,
+            "description": "Failing it disqualifies the company",
+            "title": "Must Have",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "keywords"
+        ],
+        "title": "KeywordCriterion",
+        "type": "object"
+      },
       "LivenessResponse": {
         "properties": {
           "status": {
@@ -1515,6 +1951,41 @@
         "title": "Page[ImportOut]",
         "type": "object"
       },
+      "PreviewCompany": {
+        "properties": {
+          "company_id": {
+            "format": "uuid",
+            "title": "Company Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "score": {
+            "title": "Score",
+            "type": "integer"
+          },
+          "tier": {
+            "enum": [
+              "A",
+              "B",
+              "C",
+              "D"
+            ],
+            "title": "Tier",
+            "type": "string"
+          }
+        },
+        "required": [
+          "company_id",
+          "name",
+          "score",
+          "tier"
+        ],
+        "title": "PreviewCompany",
+        "type": "object"
+      },
       "ReadinessResponse": {
         "properties": {
           "checks": {
@@ -1602,6 +2073,24 @@
         "title": "RunStatus",
         "type": "string"
       },
+      "ScoringStatus": {
+        "properties": {
+          "scored_current": {
+            "title": "Scored Current",
+            "type": "integer"
+          },
+          "total_companies": {
+            "title": "Total Companies",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total_companies",
+          "scored_current"
+        ],
+        "title": "ScoringStatus",
+        "type": "object"
+      },
       "SignupRequest": {
         "additionalProperties": false,
         "properties": {
@@ -1641,6 +2130,67 @@
         "title": "SignupRequest",
         "type": "object"
       },
+      "SizeCriterion": {
+        "additionalProperties": false,
+        "properties": {
+          "importance": {
+            "default": 3,
+            "description": "1 = minor ... 5 = critical",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Importance",
+            "type": "integer"
+          },
+          "kind": {
+            "const": "size",
+            "default": "size",
+            "title": "Kind",
+            "type": "string"
+          },
+          "max_employees": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Employees"
+          },
+          "min_employees": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Employees"
+          },
+          "must_have": {
+            "default": false,
+            "description": "Failing it disqualifies the company",
+            "title": "Must Have",
+            "type": "boolean"
+          }
+        },
+        "title": "SizeCriterion",
+        "type": "object"
+      },
+      "Status": {
+        "enum": [
+          "match",
+          "partial",
+          "miss",
+          "unknown"
+        ],
+        "title": "Status",
+        "type": "string"
+      },
       "SwitchOrganizationRequest": {
         "additionalProperties": false,
         "properties": {
@@ -1654,6 +2204,32 @@
           "organization_id"
         ],
         "title": "SwitchOrganizationRequest",
+        "type": "object"
+      },
+      "TierCounts": {
+        "properties": {
+          "A": {
+            "default": 0,
+            "title": "A",
+            "type": "integer"
+          },
+          "B": {
+            "default": 0,
+            "title": "B",
+            "type": "integer"
+          },
+          "C": {
+            "default": 0,
+            "title": "C",
+            "type": "integer"
+          },
+          "D": {
+            "default": 0,
+            "title": "D",
+            "type": "integer"
+          }
+        },
+        "title": "TierCounts",
         "type": "object"
       },
       "UpdateMemberRequest": {
@@ -2015,6 +2591,27 @@
             }
           },
           {
+            "description": "ICP fit tiers",
+            "in": "query",
+            "name": "tier",
+            "required": false,
+            "schema": {
+              "description": "ICP fit tiers",
+              "items": {
+                "enum": [
+                  "A",
+                  "B",
+                  "C",
+                  "D"
+                ],
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Tier",
+              "type": "array"
+            }
+          },
+          {
             "in": "query",
             "name": "created_after",
             "required": false,
@@ -2063,6 +2660,8 @@
                     "-created_at",
                     "updated_at",
                     "-updated_at",
+                    "icp_score",
+                    "-icp_score",
                     "relevance"
                   ],
                   "type": "string"
@@ -2404,6 +3003,58 @@
         "summary": "Company Enrichment",
         "tags": [
           "enrichment"
+        ]
+      }
+    },
+    "/companies/{company_id}/score": {
+      "get": {
+        "description": "The company's ICP fit with a per-criterion explanation; null without an ICP.",
+        "operationId": "company_score_companies__company_id__score_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "company_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Company Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/CompanyScoreOut"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Company Score Companies  Company Id  Score Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Company Score",
+        "tags": [
+          "scoring"
         ]
       }
     },
@@ -2827,6 +3478,151 @@
         "summary": "Ready",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/icp": {
+      "delete": {
+        "description": "Remove the ICP and every score (admins).",
+        "operationId": "delete_icp_icp_delete",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Delete Icp",
+        "tags": [
+          "scoring"
+        ]
+      },
+      "get": {
+        "description": "The organisation's ideal customer profile, or null when none is defined yet.",
+        "operationId": "get_icp_icp_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ICPOut"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Get Icp Icp Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Icp",
+        "tags": [
+          "scoring"
+        ]
+      },
+      "put": {
+        "description": "Create or replace the ICP (admins). All companies are rescored in the background.",
+        "operationId": "save_icp_icp_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ICPDefinition"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ICPOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Icp",
+        "tags": [
+          "scoring"
+        ]
+      }
+    },
+    "/icp/preview": {
+      "post": {
+        "description": "How an (unsaved) ICP would rate the current companies. Nothing is stored.",
+        "operationId": "preview_icp_icp_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ICPDefinition"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ICPPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Icp",
+        "tags": [
+          "scoring"
+        ]
+      }
+    },
+    "/icp/rescore": {
+      "post": {
+        "description": "Recalculate every company's score in the background (admins).",
+        "operationId": "rescore_icp_rescore_post",
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Rescore",
+        "tags": [
+          "scoring"
         ]
       }
     },
