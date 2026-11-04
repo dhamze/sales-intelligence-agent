@@ -1,0 +1,36 @@
+# Public entry point. SITE_ADDRESS is the public hostname (e.g. sia-demo.duckdns.org); Caddy then
+# obtains and renews a Let's Encrypt certificate by itself. Locally it defaults to "localhost",
+# served with Caddy's own development certificate.
+{$SITE_ADDRESS:localhost} {
+	encode zstd gzip
+
+	header {
+		# HTTPS only, for a year (no includeSubDomains: we don't control the parent domain).
+		Strict-Transport-Security "max-age=31536000"
+		# Only our own scripts, styles, images and API; no framing; no plugins.
+		# 'unsafe-inline' for styles only: UI components set positions via style attributes.
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		-Server
+	}
+
+	# The API, without the /api prefix (same layout as the Vite dev proxy).
+	handle_path /api/* {
+		reverse_proxy api:8000
+	}
+
+	# The single-page app: real files when they exist, otherwise index.html (client routing).
+	handle {
+		root * /srv
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+		@html not path /assets/*
+		header @html Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+}

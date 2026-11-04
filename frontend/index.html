@@ -9,14 +9,8 @@
       content="Sales intelligence: find, prioritise and understand your accounts."
     />
     <title>Sales Intelligence</title>
-    <script>
-      // Apply the saved/system colour theme before first paint (avoids a light flash in dark mode).
-      try {
-        const saved = localStorage.getItem("theme");
-        const dark = saved ? saved === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
-        document.documentElement.classList.toggle("dark", dark);
-      } catch {}
-    </script>
+    <!-- External file (not inline) so the Content-Security-Policy can forbid inline scripts. -->
+    <script src="/theme-init.js"></script>
   </head>
   <body>
     <div id="root"></div>

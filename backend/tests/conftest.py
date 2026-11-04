@@ -46,6 +46,15 @@ def pytest_asyncio_loop_factories(
     return {"default": asyncio.new_event_loop}
 
 
+# Overrides that make a valid production configuration (for tests of production behaviour).
+PRODUCTION: dict[str, Any] = {
+    "SIA_ENV": "production",
+    "POSTGRES_PASSWORD": "p" * 32,
+    "SIA_APP_DB_PASSWORD": "a" * 32,
+    "SIA_ALLOWED_ORIGINS": ["https://sia.example.com"],
+}
+
+
 @pytest.fixture
 def make_settings() -> SettingsFactory:
     """Build Settings from explicit values only: ignores `.env`, so unit tests behave the same

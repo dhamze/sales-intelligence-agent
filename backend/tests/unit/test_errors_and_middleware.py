@@ -6,7 +6,7 @@ from fastapi import FastAPI
 
 from sia.core.errors import ConflictError, NotFoundError
 from sia.main import create_app
-from tests.conftest import SettingsFactory
+from tests.conftest import PRODUCTION, SettingsFactory
 
 
 def _add_failing_routes(app: FastAPI) -> None:
@@ -105,7 +105,7 @@ async def test_malformed_caller_request_id_is_replaced(client: httpx.AsyncClient
 
 
 async def test_api_docs_are_disabled_in_production(make_settings: SettingsFactory) -> None:
-    app = create_app(make_settings(SIA_ENV="production"))
+    app = create_app(make_settings(**PRODUCTION))
     async with (
         app.router.lifespan_context(app),
         httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as client,

@@ -5,7 +5,7 @@ from pydantic import ValidationError
 from sqlalchemy import make_url
 
 from sia.core.config import APP_DB_ROLE, Settings
-from tests.conftest import SettingsFactory
+from tests.conftest import PRODUCTION, SettingsFactory
 
 
 def test_runtime_url_uses_restricted_app_role(make_settings: SettingsFactory) -> None:
@@ -83,11 +83,34 @@ def test_invalid_values_are_rejected(
 def test_values_are_read_from_environment_variables(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("SIA_ENV", "production")
     monkeypatch.setenv("POSTGRES_USER", "env-user")
-    monkeypatch.setenv("POSTGRES_PASSWORD", "env-password")
-    monkeypatch.setenv("SIA_APP_DB_PASSWORD", "env-app-password")
+    monkeypatch.setenv("POSTGRES_PASSWORD", "env-password-long-and-random-1234")
+    monkeypatch.setenv("SIA_APP_DB_PASSWORD", "env-app-password-long-and-random-1")
+    monkeypatch.setenv("SIA_ALLOWED_ORIGINS", '["https://sia.example.com"]')
 
     settings = Settings(_env_file=None)
 
     assert settings.is_production
     assert settings.postgres_user == "env-user"
-    assert settings.app_db_password.get_secret_value() == "env-app-password"
+    assert settings.app_db_password.get_secret_value() == "env-app-password-long-and-random-1"
+    assert settings.allowed_origins == ["https://sia.example.com"]
+
+
+@pytest.mark.parametrize(
+    "override",
+    [
+        {"SIA_ALLOWED_ORIGINS": ["http://sia.example.com"]},  # not HTTPS
+        {"SIA_ALLOWED_ORIGINS": []},
+        {"POSTGRES_PASSWORD": "short"},
+        {"SIA_APP_DB_PASSWORD": "change-me-too-change-me-too-change-me"},  # the example value
+    ],
+)
+def test_unsafe_production_settings_refuse_to_start(
+    make_settings: SettingsFactory, override: dict[str, Any]
+) -> None:
+    with pytest.raises(ValidationError, match="In production"):
+        make_settings(**(PRODUCTION | override))
+
+
+def test_local_settings_are_not_held_to_production_rules(make_settings: SettingsFactory) -> None:
+    settings = make_settings(POSTGRES_PASSWORD="short", SIA_ALLOWED_ORIGINS=["http://x"])
+    assert not settings.is_production

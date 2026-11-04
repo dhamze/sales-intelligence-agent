@@ -188,6 +188,25 @@ jobs:
           path: frontend/playwright-report
           retention-days: 14
 
+  images:
+    name: Production images (build + smoke test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Build backend and web images
+        run: |
+          docker build -f deploy/backend.Dockerfile -t sia-backend:ci .
+          docker build -f deploy/web.Dockerfile -t sia-web:ci .
+
+      - name: Backend image runs as non-root and its code imports
+        run: |
+          test "$(docker run --rm sia-backend:ci id -u)" = "10001"
+          docker run --rm -e POSTGRES_USER=x -e POSTGRES_PASSWORD=p -e SIA_APP_DB_PASSWORD=a             -e SIA_ENV=development sia-backend:ci             python -c "import sia.main, sia.worker.tasks; print('imports ok')"
+
+      - name: Caddy configuration is valid
+        run: docker run --rm sia-web:ci caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+
   secrets:
     name: Secret scan
     runs-on: ubuntu-latest

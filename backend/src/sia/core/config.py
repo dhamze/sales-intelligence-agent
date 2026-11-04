@@ -17,6 +17,7 @@ LogFormat = Literal["console", "json"]
 LLMProvider = Literal["anthropic", "fake"]
 FetchProvider = Literal["web", "fake"]
 Effort = Literal["low", "medium", "high"]
+MIN_PRODUCTION_PASSWORD = 24
 
 # The restricted database role the application connects as. Fixed (not configurable) because
 # migrations grant privileges to it by name. Created by infra/postgres/init/02-create-app-role.sh.
@@ -102,6 +103,27 @@ class Settings(BaseSettings):
         """Fake AI/fetch providers exist for tests and demos; never let them run in production."""
         if self.is_production and "fake" in (self.llm_provider, self.fetch_provider):
             raise ValueError("Fake enrichment providers cannot be used in production.")
+        return self
+
+    @model_validator(mode="after")
+    def _safe_production_config(self) -> Self:
+        """Refuse to start in production with settings that are only acceptable locally."""
+        if not self.is_production:
+            return self
+        if not self.allowed_origins or any(
+            not origin.startswith("https://") for origin in self.allowed_origins
+        ):
+            raise ValueError("In production, SIA_ALLOWED_ORIGINS must list https:// origins only.")
+        for name, secret in (
+            ("POSTGRES_PASSWORD", self.postgres_password),
+            ("SIA_APP_DB_PASSWORD", self.app_db_password),
+        ):
+            value = secret.get_secret_value()
+            if len(value) < MIN_PRODUCTION_PASSWORD or "change-me" in value:
+                raise ValueError(
+                    f"In production, {name} must be a random value of at least "
+                    f"{MIN_PRODUCTION_PASSWORD} characters."
+                )
         return self
 
     @property

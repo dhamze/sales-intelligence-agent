@@ -18,7 +18,7 @@ from sia.modules.enrichment.extraction import (
     verify,
 )
 from sia.modules.enrichment.fetcher import PageText
-from tests.conftest import SettingsFactory
+from tests.conftest import PRODUCTION, SettingsFactory
 
 HOME = "https://initech.com/"
 ABOUT = "https://initech.com/about"
@@ -165,6 +165,6 @@ def test_cost_estimates() -> None:
 
 def test_fake_providers_are_refused_in_production(make_settings: SettingsFactory) -> None:
     with pytest.raises(ValidationError, match="Fake enrichment providers"):
-        make_settings(SIA_ENV="production", SIA_LLM_PROVIDER="fake")
+        make_settings(**PRODUCTION, SIA_LLM_PROVIDER="fake")
 
-    assert isinstance(make_settings(SIA_ENV="production"), Settings)
+    assert isinstance(make_settings(**PRODUCTION), Settings)
