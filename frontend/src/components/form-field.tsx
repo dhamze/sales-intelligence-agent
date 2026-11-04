@@ -26,18 +26,15 @@ export function FormField({
     "aria-describedby": error || hint ? messageId : undefined,
   });
   return (
-    <div className="grid gap-2">
+    <div className="grid content-start gap-2">
       <Label htmlFor={id}>{label}</Label>
       {control}
-      {error ? (
-        <p id={messageId} className="text-sm text-destructive">
-          {error}
-        </p>
-      ) : hint ? (
-        <p id={messageId} className="text-xs text-muted-foreground">
-          {hint}
-        </p>
-      ) : null}
+      {(error || hint) && (
+        <div id={messageId} className="grid gap-1">
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+        </div>
+      )}
     </div>
   );
 }

@@ -119,6 +119,18 @@ class CompanyOut(BaseModel):
     updated_at: datetime
 
 
+class FacetValue(BaseModel):
+    value: str
+    count: int
+
+
+class CompanyFacets(BaseModel):
+    """Values available for filtering, most common first (for filter dropdowns)."""
+
+    industries: list[FacetValue]
+    countries: list[FacetValue]
+
+
 CompanySort = Literal[
     "name", "-name", "created_at", "-created_at", "updated_at", "-updated_at", "relevance"
 ]

@@ -82,6 +82,7 @@ class ContactOut(BaseModel):
 
     id: uuid.UUID
     company_id: uuid.UUID | None
+    company_name: str | None = None
     first_name: str | None
     last_name: str | None
     full_name: str

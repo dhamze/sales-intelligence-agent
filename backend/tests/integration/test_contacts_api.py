@@ -147,3 +147,19 @@ async def test_other_tenants_cannot_access_contacts(alice: Actor, bob: Actor) ->
     assert (await bob.client.patch(url, json={"title": "x"})).status_code == 404
     assert (await bob.client.delete(url)).status_code == 404
     assert (await bob.client.get("/contacts")).json()["items"] == []
+
+
+async def test_contacts_include_their_company_name(alice: Actor) -> None:
+    company_id = await company(alice, "Initech", "initech.com")
+    created = (await create(alice, first_name="Peter", company_id=company_id)).json()
+    await create(alice, first_name="Freelancer")
+
+    listed = (await alice.client.get("/contacts", params={"sort": "full_name"})).json()["items"]
+    fetched = (await alice.client.get(f"/contacts/{created['id']}")).json()
+
+    assert created["company_name"] == "Initech"
+    assert fetched["company_name"] == "Initech"
+    assert [(c["full_name"], c["company_name"]) for c in listed] == [
+        ("Freelancer", None),
+        ("Peter", "Initech"),
+    ]

@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppCompaniesIndexRouteImport } from './routes/_app/companies/index'
+import { Route as AppCompaniesCompanyIdRouteImport } from './routes/_app/companies/$companyId'
 import { Route as AppContactsIndexRouteImport } from './routes/_app/contacts/index'
 import { Route as AppImportsIndexRouteImport } from './routes/_app/imports/index'
 
@@ -47,6 +48,11 @@ const AppCompaniesIndexRoute = AppCompaniesIndexRouteImport.update({
   path: '/companies/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCompaniesCompanyIdRoute = AppCompaniesCompanyIdRouteImport.update({
+  id: '/companies/$companyId',
+  path: '/companies/$companyId',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppContactsIndexRoute = AppContactsIndexRouteImport.update({
   id: '/contacts/',
   path: '/contacts/',
@@ -63,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/settings': typeof AppSettingsRoute
+  '/companies/$companyId': typeof AppCompaniesCompanyIdRoute
   '/companies/': typeof AppCompaniesIndexRoute
   '/contacts/': typeof AppContactsIndexRoute
   '/imports/': typeof AppImportsIndexRoute
@@ -72,6 +79,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/settings': typeof AppSettingsRoute
+  '/companies/$companyId': typeof AppCompaniesCompanyIdRoute
   '/companies': typeof AppCompaniesIndexRoute
   '/contacts': typeof AppContactsIndexRoute
   '/imports': typeof AppImportsIndexRoute
@@ -83,6 +91,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/_app/settings': typeof AppSettingsRoute
+  '/_app/companies/$companyId': typeof AppCompaniesCompanyIdRoute
   '/_app/companies/': typeof AppCompaniesIndexRoute
   '/_app/contacts/': typeof AppContactsIndexRoute
   '/_app/imports/': typeof AppImportsIndexRoute
@@ -94,6 +103,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/settings'
+    | '/companies/$companyId'
     | '/companies/'
     | '/contacts/'
     | '/imports/'
@@ -103,6 +113,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/settings'
+    | '/companies/$companyId'
     | '/companies'
     | '/contacts'
     | '/imports'
@@ -113,6 +124,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/_app/settings'
+    | '/_app/companies/$companyId'
     | '/_app/companies/'
     | '/_app/contacts/'
     | '/_app/imports/'
@@ -169,6 +181,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCompaniesIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/companies/$companyId': {
+      id: '/_app/companies/$companyId'
+      path: '/companies/$companyId'
+      fullPath: '/companies/$companyId'
+      preLoaderRoute: typeof AppCompaniesCompanyIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/contacts/': {
       id: '/_app/contacts/'
       path: '/contacts'
@@ -188,6 +207,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppSettingsRoute: typeof AppSettingsRoute
+  AppCompaniesCompanyIdRoute: typeof AppCompaniesCompanyIdRoute
   AppCompaniesIndexRoute: typeof AppCompaniesIndexRoute
   AppContactsIndexRoute: typeof AppContactsIndexRoute
   AppImportsIndexRoute: typeof AppImportsIndexRoute
@@ -195,6 +215,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppSettingsRoute: AppSettingsRoute,
+  AppCompaniesCompanyIdRoute: AppCompaniesCompanyIdRoute,
   AppCompaniesIndexRoute: AppCompaniesIndexRoute,
   AppContactsIndexRoute: AppContactsIndexRoute,
   AppImportsIndexRoute: AppImportsIndexRoute,

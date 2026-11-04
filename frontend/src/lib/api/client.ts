@@ -15,10 +15,15 @@ import type { components, paths } from "./schema";
 export type Schemas = components["schemas"];
 
 export const api = createClient<paths>({
-  baseUrl: "/api",
+  // Absolute URL from the current origin: identical in the browser, and also valid in tests
+  // (Node's fetch rejects relative URLs).
+  baseUrl: new URL("/api", window.location.origin).href,
   credentials: "same-origin",
   // Repeated query parameters (?industry=a&industry=b), which is what FastAPI expects.
   querySerializer: { array: { style: "form", explode: true } },
+  // Look up fetch at call time rather than capturing it at import time, so tools that wrap the
+  // global fetch after startup (the test suite's API simulator, monitoring) are respected.
+  fetch: (request) => globalThis.fetch(request),
 });
 
 export interface FieldError {

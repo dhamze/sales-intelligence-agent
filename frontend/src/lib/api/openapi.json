@@ -178,6 +178,31 @@
         "title": "CompanyCreate",
         "type": "object"
       },
+      "CompanyFacets": {
+        "description": "Values available for filtering, most common first (for filter dropdowns).",
+        "properties": {
+          "countries": {
+            "items": {
+              "$ref": "#/components/schemas/FacetValue"
+            },
+            "title": "Countries",
+            "type": "array"
+          },
+          "industries": {
+            "items": {
+              "$ref": "#/components/schemas/FacetValue"
+            },
+            "title": "Industries",
+            "type": "array"
+          }
+        },
+        "required": [
+          "industries",
+          "countries"
+        ],
+        "title": "CompanyFacets",
+        "type": "object"
+      },
       "CompanyOut": {
         "properties": {
           "attributes": {
@@ -541,6 +566,17 @@
             ],
             "title": "Company Id"
           },
+          "company_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Name"
+          },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
@@ -745,6 +781,24 @@
         ],
         "title": "EntityType",
         "type": "string"
+      },
+      "FacetValue": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "count"
+        ],
+        "title": "FacetValue",
+        "type": "object"
       },
       "HTTPValidationError": {
         "properties": {
@@ -1903,6 +1957,27 @@
           }
         },
         "summary": "Create Company",
+        "tags": [
+          "companies"
+        ]
+      }
+    },
+    "/companies/facets": {
+      "get": {
+        "operationId": "get_facets_companies_facets_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyFacets"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Facets",
         "tags": [
           "companies"
         ]

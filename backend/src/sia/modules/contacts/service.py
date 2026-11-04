@@ -55,6 +55,21 @@ class ContactNeedsIdentityError(AppError):
         super().__init__("A contact needs an email address or a name.")
 
 
+async def _outputs(
+    db: AsyncSession, tenant: TenantContext, contacts: list[Contact]
+) -> dict[uuid.UUID, ContactOut]:
+    """ContactOut for each contact, labelled with its company's name (one batched lookup)."""
+    names = await companies.company_names(
+        db, tenant, {c.company_id for c in contacts if c.company_id is not None}
+    )
+    return {
+        c.id: ContactOut.model_validate(c).model_copy(
+            update={"company_name": names.get(c.company_id) if c.company_id else None}
+        )
+        for c in contacts
+    }
+
+
 def _not_found() -> NotFoundError:
     return NotFoundError("Contact not found.")
 
@@ -65,8 +80,9 @@ async def list_contacts(
     spec = repository.sort_spec(params)
     after = decode_cursor(params.cursor, spec) if params.cursor else None
     rows = await repository.list_contacts(db, tenant.organization_id, params, spec, after)
+    outputs = await _outputs(db, tenant, [contact for contact, _ in rows])
     return build_page(
-        rows, params.limit, spec, to_item=ContactOut.model_validate, get_id=lambda c: c.id
+        rows, params.limit, spec, to_item=lambda c: outputs[c.id], get_id=lambda c: c.id
     )
 
 
@@ -74,7 +90,7 @@ async def get_contact(db: AsyncSession, tenant: TenantContext, contact_id: uuid.
     contact = await repository.get(db, tenant.organization_id, contact_id)
     if contact is None:
         raise _not_found()
-    return ContactOut.model_validate(contact)
+    return (await _outputs(db, tenant, [contact]))[contact.id]
 
 
 async def _check_references(
@@ -125,7 +141,7 @@ async def create_contact(
     db.add(contact)
     await _flush(db)
     await db.refresh(contact)  # load full_name and timestamps computed by the database
-    out = ContactOut.model_validate(contact)
+    out = (await _outputs(db, tenant, [contact]))[contact.id]
     await db.commit()
     logger.info("contact_created", contact_id=str(contact.id))
     return out
@@ -149,7 +165,7 @@ async def update_contact(
         setattr(contact, field, value)
     await _flush(db)
     await db.refresh(contact)
-    out = ContactOut.model_validate(contact)
+    out = (await _outputs(db, tenant, [contact]))[contact.id]
     await db.commit()
     logger.info("contact_updated", contact_id=str(contact.id), fields=sorted(changes))
     return out

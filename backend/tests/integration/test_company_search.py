@@ -242,3 +242,28 @@ async def test_contacts_search_and_pagination(alice: Actor) -> None:
         "Samir Nagheenanajar",
     ]
     assert found["items"][0]["full_name"] == "Michael Bolton"  # despite the typo
+
+
+async def test_facets_count_values_most_common_first_and_stay_in_tenant(
+    alice: Actor, make_client: ClientFactory, owner_engine: AsyncEngine
+) -> None:
+    await insert_companies(
+        owner_engine,
+        alice.org_id,
+        [
+            {"name": "A", "industry": "Software", "country": "US"},
+            {"name": "B", "industry": "Software", "country": "DE"},
+            {"name": "C", "industry": "Fintech", "country": "US"},
+            {"name": "D", "industry": None, "country": None},
+        ],
+    )
+    bob = await make_actor(make_client(), "bob@globex.example.com", "Globex")
+    await insert_companies(owner_engine, bob.org_id, [{"name": "X", "industry": "Mining"}])
+
+    facets = (await alice.client.get("/companies/facets")).json()
+
+    assert facets["industries"] == [
+        {"value": "Software", "count": 2},
+        {"value": "Fintech", "count": 1},
+    ]
+    assert facets["countries"] == [{"value": "US", "count": 2}, {"value": "DE", "count": 1}]

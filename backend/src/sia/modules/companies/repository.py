@@ -194,3 +194,31 @@ async def bulk_upsert(
             else:
                 updated += 1
     return created, updated
+
+
+async def facet_counts(
+    db: AsyncSession, organization_id: uuid.UUID, column: Any, limit: int
+) -> list[tuple[str, int]]:
+    """Most common non-empty values of `column` in the organisation, with counts."""
+    count = func.count().label("count")
+    rows = await db.execute(
+        select(column, count)
+        .where(Company.organization_id == organization_id, column.is_not(None))
+        .group_by(column)
+        .order_by(count.desc(), column)
+        .limit(limit)
+    )
+    return [(value, n) for value, n in rows]
+
+
+async def names_by_id(
+    db: AsyncSession, organization_id: uuid.UUID, ids: set[uuid.UUID]
+) -> dict[uuid.UUID, str]:
+    if not ids:
+        return {}
+    rows = await db.execute(
+        select(Company.id, Company.name).where(
+            Company.organization_id == organization_id, Company.id.in_(ids)
+        )
+    )
+    return {row.id: row.name for row in rows}

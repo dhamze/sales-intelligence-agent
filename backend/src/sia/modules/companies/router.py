@@ -10,6 +10,7 @@ from sia.core.pagination import Page
 from sia.modules.companies import service
 from sia.modules.companies.schemas import (
     CompanyCreate,
+    CompanyFacets,
     CompanyListParams,
     CompanyOut,
     CompanyUpdate,
@@ -29,6 +30,12 @@ async def list_companies(
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_company(body: CompanyCreate, tenant: CurrentTenant, db: DbSession) -> CompanyOut:
     return await service.create_company(db, tenant, body)
+
+
+# Declared before "/{company_id}" so "facets" is not parsed as a company ID.
+@router.get("/facets")
+async def get_facets(tenant: CurrentTenant, db: DbSession) -> CompanyFacets:
+    return await service.get_facets(db, tenant)
 
 
 @router.get("/{company_id}")

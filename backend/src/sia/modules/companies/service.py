@@ -14,9 +14,11 @@ from sia.modules.companies import repository
 from sia.modules.companies.models import Company, RecordSource
 from sia.modules.companies.schemas import (
     CompanyCreate,
+    CompanyFacets,
     CompanyListParams,
     CompanyOut,
     CompanyUpdate,
+    FacetValue,
 )
 from sia.modules.identity.service import TenantContext
 
@@ -47,6 +49,19 @@ async def list_companies(
     rows = await repository.list_companies(db, tenant.organization_id, params, spec, after)
     return build_page(
         rows, params.limit, spec, to_item=CompanyOut.model_validate, get_id=lambda c: c.id
+    )
+
+
+FACET_LIMIT = 50
+
+
+async def get_facets(db: AsyncSession, tenant: TenantContext) -> CompanyFacets:
+    async def values(column: Any) -> list[FacetValue]:
+        rows = await repository.facet_counts(db, tenant.organization_id, column, FACET_LIMIT)
+        return [FacetValue(value=v, count=n) for v, n in rows]
+
+    return CompanyFacets(
+        industries=await values(Company.industry), countries=await values(Company.country)
     )
 
 
@@ -140,3 +155,10 @@ async def import_companies(
     """Bulk insert/merge validated records (no commit: the caller owns the transaction).
     Returns (created, updated)."""
     return await repository.bulk_upsert(db, tenant.organization_id, tenant.user.id, records)
+
+
+async def company_names(
+    db: AsyncSession, tenant: TenantContext, ids: set[uuid.UUID]
+) -> dict[uuid.UUID, str]:
+    """Names for a batch of company IDs (one query), e.g. to label contacts."""
+    return await repository.names_by_id(db, tenant.organization_id, ids)

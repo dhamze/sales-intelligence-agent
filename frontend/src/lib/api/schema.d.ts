@@ -107,6 +107,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/companies/facets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Facets */
+        get: operations["get_facets_companies_facets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/companies/{company_id}": {
         parameters: {
             query?: never;
@@ -348,6 +365,16 @@ export interface components {
             /** Website */
             website?: string | null;
         };
+        /**
+         * CompanyFacets
+         * @description Values available for filtering, most common first (for filter dropdowns).
+         */
+        CompanyFacets: {
+            /** Countries */
+            countries: components["schemas"]["FacetValue"][];
+            /** Industries */
+            industries: components["schemas"]["FacetValue"][];
+        };
         /** CompanyOut */
         CompanyOut: {
             /** Attributes */
@@ -434,6 +461,8 @@ export interface components {
         ContactOut: {
             /** Company Id */
             company_id: string | null;
+            /** Company Name */
+            company_name?: string | null;
             /**
              * Created At
              * Format: date-time
@@ -491,6 +520,13 @@ export interface components {
          * @enum {string}
          */
         EntityType: "companies" | "contacts";
+        /** FacetValue */
+        FacetValue: {
+            /** Count */
+            count: number;
+            /** Value */
+            value: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -1024,6 +1060,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_facets_companies_facets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyFacets"];
                 };
             };
         };

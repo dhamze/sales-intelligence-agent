@@ -1,6 +1,11 @@
 /** Dropdown menus and dialogs, built on Radix primitives (focus management, keyboard
  * navigation, Escape to close and screen-reader semantics come for free). */
-import { AlertDialog as AlertDialogPrimitive, DropdownMenu as Menu } from "radix-ui";
+import { Check, X } from "lucide-react";
+import {
+  AlertDialog as AlertDialogPrimitive,
+  Dialog as DialogPrimitive,
+  DropdownMenu as Menu,
+} from "radix-ui";
 import type { ComponentProps, ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -98,5 +103,76 @@ export function ConfirmDialog({
         </AlertDialogPrimitive.Content>
       </AlertDialogPrimitive.Portal>
     </AlertDialogPrimitive.Root>
+  );
+}
+
+export function DropdownMenuCheckboxItem({
+  className,
+  children,
+  ...props
+}: ComponentProps<typeof Menu.CheckboxItem>) {
+  return (
+    <Menu.CheckboxItem
+      className={cn(
+        "flex cursor-default select-none items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-none data-[highlighted]:bg-muted",
+        className,
+      )}
+      {...props}
+    >
+      <span className="flex size-4 items-center justify-center rounded border border-input">
+        <Menu.ItemIndicator>
+          <Check className="size-3" aria-hidden />
+        </Menu.ItemIndicator>
+      </span>
+      {children}
+    </Menu.CheckboxItem>
+  );
+}
+
+/** A modal dialog with a title, e.g. for create/edit forms. Controlled via open/onOpenChange. */
+export function FormDialog({
+  open,
+  onOpenChange,
+  title,
+  description,
+  children,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  description?: string;
+  children: ReactNode;
+}) {
+  return (
+    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/40" />
+        <DialogPrimitive.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border bg-card p-6 shadow-xl">
+          <div className="mb-5 flex items-start justify-between gap-4">
+            <div>
+              <DialogPrimitive.Title className="text-lg font-semibold">
+                {title}
+              </DialogPrimitive.Title>
+              {description ? (
+                <DialogPrimitive.Description className="mt-1 text-sm text-muted-foreground">
+                  {description}
+                </DialogPrimitive.Description>
+              ) : (
+                <DialogPrimitive.Description className="sr-only">
+                  {title}
+                </DialogPrimitive.Description>
+              )}
+            </div>
+            <DialogPrimitive.Close
+              className="rounded-md p-1 text-muted-foreground hover:bg-muted"
+              aria-label="Close"
+            >
+              <X className="size-4" aria-hidden />
+            </DialogPrimitive.Close>
+          </div>
+          {children}
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }
