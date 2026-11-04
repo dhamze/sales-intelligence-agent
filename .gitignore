@@ -1,0 +1,61 @@
+# ---------------------------------------------------------------
+# Secrets & local configuration — NEVER commit these
+# ---------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+secrets/
+
+# ---------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# ---------------------------------------------------------------
+# Node / frontend
+# ---------------------------------------------------------------
+node_modules/
+frontend/dist/
+*.tsbuildinfo
+.vite/
+playwright-report/
+test-results/
+npm-debug.log*
+
+# ---------------------------------------------------------------
+# Editors & OS
+# ---------------------------------------------------------------
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------------------------------------------------------------
+# Local data, logs, scratch
+# ---------------------------------------------------------------
+*.log
+logs/
+data/local/
+*.sqlite3
+.claude/settings.local.json

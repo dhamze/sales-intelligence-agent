@@ -1,0 +1,59 @@
+# Workspace root. This file is not itself a package: it ties the Python
+# packages in this repo together (one lockfile, one .venv) and holds the
+# shared developer tooling and its configuration.
+
+[tool.uv.workspace]
+members = ["backend"]
+
+[tool.uv.sources]
+sia-backend = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "sia-backend",
+    "mypy>=1.15",
+    "pre-commit>=4.0",
+    "pytest>=8.3",
+    "ruff>=0.11",
+]
+
+# ---------------------------------------------------------------
+# Ruff: linter + formatter for all Python code in the repo
+# ---------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes
+    "I",        # import sorting
+    "B",        # bugbear: likely bugs
+    "UP",       # pyupgrade: modern syntax
+    "S",        # bandit: security checks
+    "C4",       # comprehensions
+    "SIM",      # simplifications
+    "RUF",      # ruff-specific
+    "ASYNC",    # async pitfalls
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S101"]  # `assert` is how pytest works
+
+# ---------------------------------------------------------------
+# Mypy: strict static type checking
+# ---------------------------------------------------------------
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_unreachable = true
+files = ["backend/src", "backend/tests"]
+mypy_path = "backend/src"
+
+# ---------------------------------------------------------------
+# Pytest
+# ---------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+addopts = "-ra --strict-markers --strict-config"
