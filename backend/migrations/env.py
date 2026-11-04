@@ -11,12 +11,10 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import create_async_engine
 
+import sia.models  # noqa: F401  # registers every module's tables on Base.metadata
 from sia.core.config import Settings, get_settings
 from sia.core.db import Base
 from sia.core.logging import configure_logging
-
-# Import every module's ORM models here so autogenerate can see their tables, e.g.:
-#   import sia.modules.identity.models
 
 config = context.config
 settings: Settings = config.attributes.get("settings") or get_settings()

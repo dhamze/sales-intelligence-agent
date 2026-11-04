@@ -5,18 +5,20 @@
 - One `AsyncSession` per request, provided via FastAPI dependency injection (`DbSession`).
 """
 
+import uuid
 from collections.abc import AsyncIterator
-from typing import Annotated
+from datetime import datetime
+from typing import Annotated, Any, ClassVar
 
 from fastapi import Depends, Request
-from sqlalchemy import MetaData, text
+from sqlalchemy import DateTime, MetaData, func, text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from sia.core.config import Settings
 
@@ -35,6 +37,25 @@ class Base(DeclarativeBase):
     """Base class for all ORM models."""
 
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
+    # Every datetime column stores a timezone (UTC instants); naive datetimes cause bugs.
+    type_annotation_map: ClassVar[dict[Any, Any]] = {datetime: DateTime(timezone=True)}
+
+
+class UUIDPrimaryKeyMixin:
+    """Random UUID primary key: not guessable or enumerable, unlike 1, 2, 3, ...
+
+    Generated in Python so the ID is known before INSERT (needed e.g. to set the tenant context
+    for a new organisation); the server default covers rows inserted with raw SQL.
+    """
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        primary_key=True, default=uuid.uuid4, server_default=text("gen_random_uuid()")
+    )
+
+
+class TimestampMixin:
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 
 
 def create_engine(settings: Settings) -> AsyncEngine:
