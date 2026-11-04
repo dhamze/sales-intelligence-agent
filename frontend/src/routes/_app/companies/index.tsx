@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowDown, ArrowUp, Building2, FileUp, Plus, Search, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Building2, FileUp, Plus, Search, Target, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,8 @@ import {
 import { CompanyForm } from "@/features/companies/company-form";
 import { FilterMenu } from "@/features/companies/filter-menu";
 import { EnrichNewButton } from "@/features/enrichment/enrich-new-button";
+import { icpQuery, TIER_DESCRIPTIONS, TIERS } from "@/features/scoring/api";
+import { TierBadge } from "@/features/scoring/tier-badge";
 import { errorMessage } from "@/lib/api/client";
 import { useDebouncedValue } from "@/lib/hooks";
 import { formatDate, formatNumber } from "@/lib/utils";
@@ -52,6 +54,8 @@ function CompaniesPage() {
 
   const companies = useInfiniteQuery(companiesQuery(search));
   const facets = useQuery(facetsQuery);
+  const icp = useQuery(icpQuery);
+  const scoring = !!icp.data;
   const rows = companies.data?.pages.flatMap((page) => page.items) ?? [];
   const filtered = hasFilters(search);
 
@@ -104,6 +108,24 @@ function CompaniesPage() {
             setSearch({ country: country.length ? country : undefined });
           }}
         />
+        {scoring && (
+          <FilterMenu
+            label="ICP tier"
+            options={TIERS.map((tier) => ({
+              value: tier,
+              label: (
+                <span className="flex items-center gap-2">
+                  <TierBadge tier={tier} />
+                  {TIER_DESCRIPTIONS[tier]}
+                </span>
+              ),
+            }))}
+            selected={search.tier ?? []}
+            onChange={(tier) => {
+              setSearch({ tier: tier.length ? (tier as CompanySearch["tier"]) : undefined });
+            }}
+          />
+        )}
         <NativeSelect
           aria-label="Company size"
           className="w-auto"
@@ -129,6 +151,19 @@ function CompaniesPage() {
           </Button>
         )}
       </div>
+
+      {icp.isSuccess && !scoring && rows.length > 0 && (
+        <Alert className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <span className="flex items-center gap-2">
+            <Target className="size-4 text-primary" aria-hidden />
+            Rank these companies by fit: describe your ideal customer once, and every company gets a
+            score with the reasons.
+          </span>
+          <Link to="/settings" hash="icp" className="font-medium text-primary hover:underline">
+            Set up ICP scoring
+          </Link>
+        </Alert>
+      )}
 
       {companies.isError ? (
         <Alert tone="danger">{errorMessage(companies.error)}</Alert>
@@ -162,6 +197,15 @@ function CompaniesPage() {
             <TableHeader>
               <TableRow className="hover:bg-transparent">
                 <SortableHead label="Name" field="name" search={search} onSort={setSearch} />
+                {scoring && (
+                  <SortableHead
+                    label="ICP fit"
+                    field="icp_score"
+                    descendingFirst
+                    search={search}
+                    onSort={setSearch}
+                  />
+                )}
                 <TableHead>Industry</TableHead>
                 <TableHead className="text-right">Employees</TableHead>
                 <TableHead>Country</TableHead>
@@ -183,6 +227,15 @@ function CompaniesPage() {
                       <div className="text-xs text-muted-foreground">{company.domain}</div>
                     )}
                   </TableCell>
+                  {scoring && (
+                    <TableCell>
+                      {company.icp_tier && company.icp_score !== null ? (
+                        <TierBadge tier={company.icp_tier} score={company.icp_score} />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Not scored</span>
+                      )}
+                    </TableCell>
+                  )}
                   <TableCell>{company.industry ?? "—"}</TableCell>
                   <TableCell className="text-right tabular-nums">
                     {formatNumber(company.employee_count)}
@@ -261,17 +314,26 @@ function SearchBox({ value, onChange }: { value: string; onChange: (value: strin
 function SortableHead({
   label,
   field,
+  descendingFirst = false,
   search,
   onSort,
 }: {
   label: string;
-  field: "name" | "created_at";
+  field: "name" | "created_at" | "icp_score";
+  /** First click sorts high-to-low (e.g. best fit first). */
+  descendingFirst?: boolean;
   search: CompanySearch;
   onSort: (patch: Partial<CompanySearch>) => void;
 }) {
   const current = search.sort ?? (search.q ? "relevance" : "-created_at");
   const direction = current === field ? "asc" : current === `-${field}` ? "desc" : undefined;
-  const next: CompanySort = direction === "asc" ? `-${field}` : field;
+  const next: CompanySort = descendingFirst
+    ? direction === "desc"
+      ? field
+      : `-${field}`
+    : direction === "asc"
+      ? `-${field}`
+      : field;
   return (
     <TableHead
       aria-sort={direction === "asc" ? "ascending" : direction === "desc" ? "descending" : "none"}

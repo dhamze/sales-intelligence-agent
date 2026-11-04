@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/overlays";
 
-/** A "pick any of these values" filter, showing how many records have each value. */
+/** A "pick any of these values" filter, showing how many records have each value (if known). */
 export function FilterMenu({
   label,
   options,
@@ -17,7 +17,7 @@ export function FilterMenu({
   onChange,
 }: {
   label: string;
-  options: { value: string; count: number }[];
+  options: { value: string; count?: number; label?: React.ReactNode }[];
   selected: string[];
   onChange: (values: string[]) => void;
 }) {
@@ -39,7 +39,7 @@ export function FilterMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="max-h-80 overflow-y-auto">
         {options.length === 0 && <DropdownMenuLabel>No values yet</DropdownMenuLabel>}
-        {options.map(({ value, count }) => (
+        {options.map(({ value, count, label: optionLabel }) => (
           <DropdownMenuCheckboxItem
             key={value}
             checked={selected.includes(value)}
@@ -50,8 +50,8 @@ export function FilterMenu({
               e.preventDefault(); // keep the menu open to pick several values
             }}
           >
-            <span className="flex-1 truncate">{value}</span>
-            <span className="text-xs text-muted-foreground">{count}</span>
+            <span className="flex-1 truncate">{optionLabel ?? value}</span>
+            {count !== undefined && <span className="text-xs text-muted-foreground">{count}</span>}
           </DropdownMenuCheckboxItem>
         ))}
       </DropdownMenuContent>

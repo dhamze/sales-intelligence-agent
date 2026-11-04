@@ -10,6 +10,7 @@ import { ConfirmDialog, FormDialog } from "@/components/ui/overlays";
 import { Input } from "@/components/ui/primitives";
 import { hasRole, meQuery } from "@/features/auth/api";
 import { ApiError, errorMessage } from "@/lib/api/client";
+import { scoringKeys } from "@/features/scoring/api";
 import { handleSubmitError } from "@/lib/forms";
 
 import { contactKeys, createContact, deleteContact, updateContact, type Contact } from "./api";
@@ -105,7 +106,12 @@ function ContactForm({
     },
   });
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: contactKeys.all });
+  // A contact can change its company's ICP score ("contacts on file"), so refresh scores too.
+  const refresh = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: contactKeys.all }),
+      queryClient.invalidateQueries({ queryKey: scoringKeys.allScores }),
+    ]);
 
   const save = useMutation({
     mutationFn: (values: FormValues) =>

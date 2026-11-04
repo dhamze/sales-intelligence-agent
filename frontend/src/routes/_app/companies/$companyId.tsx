@@ -20,6 +20,8 @@ import { companyKeys, companyQuery, deleteCompany } from "@/features/companies/a
 import { CompanyForm } from "@/features/companies/company-form";
 import { ContactsTable } from "@/features/contacts/contacts-table";
 import { AiProfileCard } from "@/features/enrichment/ai-profile-card";
+import { IcpFitCard } from "@/features/scoring/icp-fit-card";
+import { TierBadge } from "@/features/scoring/tier-badge";
 import { ContactFormDialog } from "@/features/contacts/contact-form";
 import { ApiError, errorMessage } from "@/lib/api/client";
 import { formatDateTime, formatNumber, formatValue } from "@/lib/utils";
@@ -114,7 +116,12 @@ function CompanyPage() {
       {back}
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{c.name}</h1>
+          <h1 className="flex items-center gap-3 text-2xl font-semibold tracking-tight">
+            {c.name}
+            {c.icp_tier && c.icp_score !== null && (
+              <TierBadge tier={c.icp_tier} score={c.icp_score} />
+            )}
+          </h1>
           {c.domain && <p className="mt-1 text-sm text-muted-foreground">{c.domain}</p>}
         </div>
         <div className="flex gap-2">
@@ -191,8 +198,11 @@ function CompanyPage() {
         </Card>
       </div>
 
-      <div className="mt-6">
-        <AiProfileCard companyId={c.id} />
+      <div className="mt-6 grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <AiProfileCard companyId={c.id} />
+        </div>
+        <IcpFitCard companyId={c.id} />
       </div>
 
       <section className="mt-8">

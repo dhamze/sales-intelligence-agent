@@ -38,6 +38,7 @@ import {
   type Member,
 } from "@/features/organization/api";
 import { assignableRoles, canRemove } from "@/features/organization/policy";
+import { IcpBuilder } from "@/features/scoring/icp-builder";
 import { ApiError, errorMessage } from "@/lib/api/client";
 import { handleSubmitError } from "@/lib/forms";
 import { formatDate } from "@/lib/utils";
@@ -51,9 +52,13 @@ function SettingsPage() {
   if (!me?.active_organization || !me.role) return null; // layout shows the "no org" state
   return (
     <>
-      <PageHeader title="Settings" description="Your organization and who has access to it." />
+      <PageHeader
+        title="Settings"
+        description="Your organization, who has access to it, and your ideal customer."
+      />
       <div className="grid gap-6">
         <OrganizationCard me={me} />
+        <IcpBuilder canEdit={hasRole(me, "admin")} />
         <MembersCard me={me} />
       </div>
     </>

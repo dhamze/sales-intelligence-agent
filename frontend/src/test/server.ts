@@ -21,6 +21,9 @@ const defaults = [
   http.get("*/api/companies/:id/enrichment", () =>
     HttpResponse.json({ latest_run: null, profile: null }),
   ),
+  // No ideal customer profile yet (scoring off).
+  http.get("*/api/icp", () => HttpResponse.json(null)),
+  http.get("*/api/companies/:id/score", () => HttpResponse.json(null)),
 ];
 
 export const server = setupServer(...defaults);

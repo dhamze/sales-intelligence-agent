@@ -16,7 +16,15 @@ export const SIZE_BUCKETS = {
 } as const;
 type SizeBucket = keyof typeof SIZE_BUCKETS;
 
-const SORTS = ["name", "-name", "created_at", "-created_at", "relevance"] as const;
+const SORTS = [
+  "name",
+  "-name",
+  "created_at",
+  "-created_at",
+  "icp_score",
+  "-icp_score",
+  "relevance",
+] as const;
 export type CompanySort = (typeof SORTS)[number];
 
 /** Filters live in the URL (shareable, back button works); this validates them. */
@@ -25,12 +33,19 @@ export const companySearchSchema = z.object({
   industry: z.array(z.string()).optional(),
   country: z.array(z.string()).optional(),
   size: z.enum(Object.keys(SIZE_BUCKETS) as [SizeBucket, ...SizeBucket[]]).optional(),
+  tier: z.array(z.enum(["A", "B", "C", "D"])).optional(),
   sort: z.enum(SORTS).optional(),
 });
 export type CompanySearch = z.infer<typeof companySearchSchema>;
 
 export function hasFilters(search: CompanySearch): boolean {
-  return Boolean(search.q || search.industry?.length || search.country?.length || search.size);
+  return Boolean(
+    search.q ||
+    search.industry?.length ||
+    search.country?.length ||
+    search.size ||
+    search.tier?.length,
+  );
 }
 
 const PAGE_SIZE = 50;
@@ -57,6 +72,7 @@ export function companiesQuery(search: CompanySearch) {
               country: search.country,
               employees_min: size?.min,
               employees_max: size?.max,
+              tier: search.tier,
               sort: search.sort,
               limit: PAGE_SIZE,
               cursor: pageParam,
