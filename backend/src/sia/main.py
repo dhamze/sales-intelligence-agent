@@ -23,6 +23,7 @@ from sia.core.middleware import (
     OriginCheckMiddleware,
     RequestContextMiddleware,
 )
+from sia.core.observability import init_sentry
 from sia.modules.companies.router import router as companies_router
 from sia.modules.contacts.router import router as contacts_router
 from sia.modules.demo.router import router as demo_router
@@ -43,6 +44,7 @@ MAX_REQUEST_BYTES = 6 * 1024 * 1024
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
     configure_logging(settings.log_level, settings.log_format)
+    init_sentry(settings, "api")
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:

@@ -7,6 +7,7 @@ import structlog
 
 from sia.core.config import get_settings
 from sia.core.logging import configure_logging
+from sia.core.observability import init_sentry
 from sia.worker import configured_app, runtime
 
 logger = structlog.get_logger("sia.worker")
@@ -15,6 +16,7 @@ logger = structlog.get_logger("sia.worker")
 async def main() -> None:
     settings = get_settings()
     configure_logging(settings.log_level, settings.log_format)
+    init_sentry(settings, "worker")
     runtime.init(settings)
     app = configured_app(settings)
     logger.info("worker_starting", concurrency=settings.worker_concurrency)

@@ -15,6 +15,7 @@ import structlog
 from structlog.typing import Processor
 
 from sia.core.config import LogFormat, LogLevel
+from sia.core.observability import forward_errors_to_sentry
 
 
 def configure_logging(level: LogLevel, fmt: LogFormat) -> None:
@@ -24,6 +25,7 @@ def configure_logging(level: LogLevel, fmt: LogFormat) -> None:
         structlog.stdlib.add_logger_name,
         structlog.processors.TimeStamper(fmt="iso", utc=True),
         structlog.processors.StackInfoRenderer(),
+        forward_errors_to_sentry,  # no-op unless Sentry is configured (see observability.py)
     ]
 
     renderer: Processor

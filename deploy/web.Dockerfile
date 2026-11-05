@@ -7,6 +7,10 @@ WORKDIR /app
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY frontend/ ./
+# Optional browser error reporting. The DSN is public by design (it can only SEND events).
+ARG VITE_SENTRY_DSN=""
+ARG VITE_RELEASE=""
+ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN VITE_RELEASE=$VITE_RELEASE
 RUN npm run build
 
 FROM caddy:2.11.6-alpine@sha256:d44355d3c2149dc580ce2cac735955d1c08d3d00882c30489c241aa51a5c10d9

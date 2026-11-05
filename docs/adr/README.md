@@ -19,3 +19,4 @@ supersedes the old one.
 | [0011](0011-explainable-icp-scoring.md) | Explainable rules-based ICP scoring | Accepted |
 | [0012](0012-cited-account-briefs.md) | Cited account briefs and how they are evaluated | Accepted |
 | [0013](0013-abuse-and-cost-protection.md) | Abuse and cost protection for a public deployment | Accepted |
+| [0014](0014-error-monitoring-and-privacy.md) | Error monitoring with Sentry, privacy first | Accepted |

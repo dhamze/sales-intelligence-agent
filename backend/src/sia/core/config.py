@@ -76,6 +76,15 @@ class Settings(BaseSettings):
     brief_effort: Effort = Field(default="medium", validation_alias="SIA_BRIEF_EFFORT")
     brief_daily_limit: int = Field(default=50, ge=0, validation_alias="SIA_BRIEF_DAILY_LIMIT")
 
+    # --- Error monitoring (Sentry; off unless a DSN is set) ---
+    sentry_dsn: SecretStr | None = Field(default=None, validation_alias="SENTRY_DSN")
+    # Share of requests traced for performance (0 = errors only, which fits the free tier).
+    sentry_traces_sample_rate: float = Field(
+        default=0.0, ge=0, le=1, validation_alias="SIA_SENTRY_TRACES_SAMPLE_RATE"
+    )
+    # Version identifier shown in Sentry (the deploy sets it to the git commit).
+    release: str | None = Field(default=None, validation_alias="SIA_RELEASE")
+
     # --- Cost and abuse protection ---
     # Estimated AI spend allowed per calendar month (UTC) across ALL organisations; AI features
     # pause when it is reached. None = no limit (development).

@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 
 import { meQuery } from "@/features/auth/api";
 import { ApiError } from "@/lib/api/client";
+import { initMonitoring, reportError } from "@/lib/monitoring";
 import { routeTree } from "./routeTree.gen";
 import "./styles.css";
 
@@ -40,6 +41,8 @@ const router = createRouter({
   defaultPreload: "intent",
   defaultPreloadStaleTime: 0, // TanStack Query owns caching
   scrollRestoration: true,
+  // Errors shown by a route's error screen never reach the global handlers: report them here.
+  defaultOnCatch: reportError,
 });
 
 declare module "@tanstack/react-router" {
@@ -47,6 +50,8 @@ declare module "@tanstack/react-router" {
     router: typeof router;
   }
 }
+
+initMonitoring();
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Missing #root element");

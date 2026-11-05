@@ -17,6 +17,7 @@ x-backend: &backend
   environment:
     POSTGRES_HOST: db
     SIA_ENV: production
+    SIA_RELEASE: ${SIA_RELEASE:-}
   restart: unless-stopped
   # Defence in depth: no writes to the image, no privilege escalation, no Linux capabilities.
   read_only: true
@@ -75,6 +76,9 @@ services:
     build:
       context: ..
       dockerfile: deploy/web.Dockerfile
+      args:
+        VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
+        VITE_RELEASE: ${SIA_RELEASE:-}
     restart: unless-stopped
     env_file: .env.production
     ports:
