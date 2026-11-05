@@ -21,7 +21,15 @@
 
 	# The API, without the /api prefix (same layout as the Vite dev proxy).
 	handle_path /api/* {
-		reverse_proxy api:8000
+		reverse_proxy api:8000 {
+			# During a deploy the API restarts for a few seconds: hold requests and retry
+			# instead of failing them, and only send traffic to an API that reports ready.
+			lb_try_duration 30s
+			lb_try_interval 250ms
+			health_uri /health/ready
+			health_interval 2s
+			health_timeout 2s
+		}
 	}
 
 	# The single-page app: real files when they exist, otherwise index.html (client routing).

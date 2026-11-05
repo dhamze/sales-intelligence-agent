@@ -1,0 +1,144 @@
+# Build the production images and deploy them to the server.
+#
+# - Runs after CI succeeds on main, or by hand ("Run workflow") with a commit SHA to deploy an
+#   older release (rollback).
+# - Does nothing until the repository variable DEPLOY_ENABLED is "true".
+# - The "production" environment holds the SSH secrets; add required reviewers to it in the
+#   repository settings to make every deploy wait for your approval.
+#
+# Repository variables: DEPLOY_ENABLED, SITE_ADDRESS (e.g. sia-demo.duckdns.org),
+#   VITE_SENTRY_DSN (optional, public by design).
+# Environment "production" secrets: DEPLOY_HOST, DEPLOY_USER, DEPLOY_SSH_KEY,
+#   DEPLOY_KNOWN_HOSTS (the server's host key line, so SSH never trusts blindly).
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Commit SHA to deploy (leave empty for the latest main)"
+        required: false
+
+permissions: {}
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false  # never interrupt a deploy halfway
+
+jobs:
+  images:
+    name: Build and push images
+    if: >-
+      vars.DEPLOY_ENABLED == 'true' &&
+      (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      sha: ${{ steps.release.outputs.sha }}
+      prefix: ${{ steps.release.outputs.prefix }}
+    steps:
+      - name: Choose the release
+        id: release
+        env:
+          INPUT_REF: ${{ inputs.ref }}
+          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          FALLBACK_SHA: ${{ github.sha }}
+        run: |
+          sha="${INPUT_REF:-${RUN_SHA:-$FALLBACK_SHA}}"
+          [[ "$sha" =~ ^[0-9a-f]{7,40}$ ]] || { echo "Not a commit SHA: $sha"; exit 1; }
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "prefix=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ steps.release.outputs.sha }}
+
+      - name: Log in to the GitHub container registry
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+
+      - name: Build and push (skipped when this release was built before, e.g. a rollback)
+        env:
+          SHA: ${{ steps.release.outputs.sha }}
+          PREFIX: ${{ steps.release.outputs.prefix }}
+          VITE_SENTRY_DSN: ${{ vars.VITE_SENTRY_DSN }}
+        run: |
+          source_label="org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}"
+          for name in sia-backend sia-web; do
+            image="$PREFIX/$name:$SHA"
+            if docker manifest inspect "$image" > /dev/null 2>&1; then
+              echo "$image already exists"
+              continue
+            fi
+            dockerfile="deploy/${name#sia-}.Dockerfile"
+            docker build -f "$dockerfile" -t "$image" --label "$source_label" \
+              --build-arg VITE_SENTRY_DSN="$VITE_SENTRY_DSN" --build-arg VITE_RELEASE="$SHA" .
+            docker push "$image"
+          done
+
+  deploy:
+    name: Deploy to production
+    needs: images
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://${{ vars.SITE_ADDRESS }}
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ needs.images.outputs.sha }}
+
+      - name: Set up SSH (key and pinned host key)
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          printf 'Host server\n  HostName %s\n  User %s\n  IdentityFile ~/.ssh/deploy_key\n  StrictHostKeyChecking yes\n' \
+            "$DEPLOY_HOST" "$DEPLOY_USER" > ~/.ssh/config
+
+      - name: Copy deployment files
+        run: |
+          scp deploy/compose.prod.yaml deploy/deploy.sh server:/opt/sia/deploy/
+          scp infra/postgres/init/02-create-app-role.sh server:/opt/sia/infra/postgres/init/
+
+      - name: Deploy
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SHA: ${{ needs.images.outputs.sha }}
+          PREFIX: ${{ needs.images.outputs.prefix }}
+        run: |
+          # The registry token is short-lived (this job only) and goes over stdin, never argv.
+          # Values expanded here are validated (commit SHA, lower-case owner, GitHub login).
+          # shellcheck disable=SC2029
+          echo "$TOKEN" | ssh server "docker login ghcr.io -u '$GITHUB_ACTOR' --password-stdin"
+          status=0
+          # shellcheck disable=SC2029
+          ssh server "IMAGE_PREFIX='$PREFIX' bash /opt/sia/deploy/deploy.sh '$SHA'" || status=$?
+          ssh server "docker logout ghcr.io" || true  # always log out, even after a failure
+          exit "$status"
+
+      - name: Check the live site
+        env:
+          SITE: ${{ vars.SITE_ADDRESS }}
+        run: |
+          for _ in $(seq 1 12); do
+            if curl -fsS --max-time 10 "https://$SITE/api/health/ready"; then exit 0; fi
+            sleep 5
+          done
+          echo "The site did not become ready." && exit 1

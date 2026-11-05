@@ -4,7 +4,7 @@
     uv run python -m sia.scripts.ai_access --org <organization-id> --on
     uv run python -m sia.scripts.ai_access --org <organization-id> --off
 
-On the server:  docker compose -f deploy/compose.prod.yaml run --rm api \
+On the server:  docker compose -f deploy/compose.prod.yaml run --rm --no-deps api \
                     python -m sia.scripts.ai_access --list
 
 Connects as the schema owner (an operator action across organisations), never as the app role.
