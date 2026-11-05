@@ -159,8 +159,7 @@ crontab -e   # add:  15 3 * * * /opt/sia/deploy/backup.sh >> /opt/sia/backups/ba
 Recommended: a heartbeat check (e.g. healthchecks.io, free) in `BACKUP_PING_URL`, so you get an
 email when a night's backup does not happen; and an off-server copy (`BACKUP_REMOTE` with
 rclone, e.g. a Backblaze B2 or Hetzner Storage Box bucket), so losing the server does not lose
-the backups. The deploy scripts copy `backup.sh`/`restore.sh` only if you copy them: run
-`scp deploy/backup.sh deploy/restore.sh deploy@<ip>:/opt/sia/deploy/` after changes.
+the backups. Every deploy copies the current `backup.sh` and `restore.sh` to the server.
 
 ### 6.2 Restoring (disaster recovery)
 
