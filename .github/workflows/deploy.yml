@@ -114,7 +114,8 @@ jobs:
 
       - name: Copy deployment files
         run: |
-          scp deploy/compose.prod.yaml deploy/deploy.sh server:/opt/sia/deploy/
+          scp deploy/compose.prod.yaml deploy/deploy.sh deploy/backup.sh deploy/restore.sh \
+            deploy/backup.env.example server:/opt/sia/deploy/
           scp infra/postgres/init/02-create-app-role.sh server:/opt/sia/infra/postgres/init/
 
       - name: Deploy

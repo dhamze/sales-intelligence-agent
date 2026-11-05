@@ -202,15 +202,21 @@ jobs:
       - name: Backend image runs as non-root and its code imports
         run: |
           test "$(docker run --rm sia-backend:ci id -u)" = "10001"
-          docker run --rm -e POSTGRES_USER=x -e POSTGRES_PASSWORD=p -e SIA_APP_DB_PASSWORD=a             -e SIA_ENV=development sia-backend:ci             python -c "import sia.main, sia.worker.tasks; print('imports ok')"
+          docker run --rm -e POSTGRES_USER=x -e POSTGRES_PASSWORD=p -e SIA_APP_DB_PASSWORD=a \
+            -e SIA_ENV=development sia-backend:ci \
+            python -c "import sia.main, sia.worker.tasks; print('imports ok')"
 
       - name: Caddy configuration is valid
         run: docker run --rm sia-web:ci caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
 
       - name: Lint shell scripts and workflows
         run: |
-          docker run --rm -v "$PWD:/mnt" -w /mnt             koalaman/shellcheck@sha256:2097951f02e735b613f4a34de20c40f937a6c8f18ecb170612c88c34517221fb             deploy/bootstrap-server.sh deploy/deploy.sh infra/postgres/init/02-create-app-role.sh
-          docker run --rm -v "$PWD:/repo" -w /repo             rhysd/actionlint@sha256:887a259a5a534f3c4f36cb02dca341673c6089431057242cdc931e9f133147e9             -color=false
+          docker run --rm -v "$PWD:/mnt" -w /mnt \
+            koalaman/shellcheck@sha256:2097951f02e735b613f4a34de20c40f937a6c8f18ecb170612c88c34517221fb \
+            deploy/*.sh infra/postgres/init/02-create-app-role.sh
+          docker run --rm -v "$PWD:/repo" -w /repo \
+            rhysd/actionlint@sha256:887a259a5a534f3c4f36cb02dca341673c6089431057242cdc931e9f133147e9 \
+            -color=false
 
   secrets:
     name: Secret scan

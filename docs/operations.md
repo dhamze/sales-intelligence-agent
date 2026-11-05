@@ -17,7 +17,7 @@ Internet ──443──▶ Caddy (web)  ── static frontend
 - One Ubuntu 24.04 server running Docker Compose (`deploy/compose.prod.yaml`), project `sia-prod`.
 - Only Caddy publishes ports (80, 443). It gets and renews the HTTPS certificate by itself.
 - Files on the server live in `/opt/sia`:
-  - `deploy/compose.prod.yaml`, `deploy/deploy.sh`: copied by every deploy;
+  - `deploy/compose.prod.yaml`, `deploy.sh`, `backup.sh`, `restore.sh`: copied by every deploy;
   - `deploy/.env.production`: settings and secrets (you create it once; never committed);
   - `deploy/.env`: images of the running release (written by `deploy.sh`; no secrets);
   - `infra/postgres/init/02-create-app-role.sh`: creates the restricted database role.
@@ -127,4 +127,68 @@ upgrade.
 
 ## 6. Backups and restore
 
-See section 6 after Phase 8e.
+**What:** every night `deploy/backup.sh` dumps the whole database (all organisations), encrypts
+it to a GPG **public** key and keeps 7 daily + 4 weekly copies in `/opt/sia/backups`. The
+server cannot read its own backups: the private key lives only with you, offline.
+**A backup only counts once it has been restored**, so the drill (6.3) is part of the job.
+
+### 6.1 One-time setup
+
+On **your own computer** (not the server):
+
+```bash
+gpg --quick-gen-key "SIA backups <you@example.com>" default default never
+gpg --armor --export you@example.com > backup-public.asc
+gpg --armor --export-secret-keys you@example.com > backup-PRIVATE.asc
+```
+
+Store `backup-PRIVATE.asc` and its passphrase somewhere safe and **off the server** (password
+manager plus an offline copy). Without it the backups are useless.
+
+On the server:
+
+```bash
+scp backup-public.asc deploy@<ip>:/tmp/ && ssh deploy@<ip>
+gpg --import /tmp/backup-public.asc && rm /tmp/backup-public.asc
+cd /opt/sia/deploy
+cp backup.env.example backup.env && nano backup.env   # set BACKUP_GPG_RECIPIENT
+./backup.sh                                            # first backup, by hand
+crontab -e   # add:  15 3 * * * /opt/sia/deploy/backup.sh >> /opt/sia/backups/backup.log 2>&1
+```
+
+Recommended: a heartbeat check (e.g. healthchecks.io, free) in `BACKUP_PING_URL`, so you get an
+email when a night's backup does not happen; and an off-server copy (`BACKUP_REMOTE` with
+rclone, e.g. a Backblaze B2 or Hetzner Storage Box bucket), so losing the server does not lose
+the backups. The deploy scripts copy `backup.sh`/`restore.sh` only if you copy them: run
+`scp deploy/backup.sh deploy/restore.sh deploy@<ip>:/opt/sia/deploy/` after changes.
+
+### 6.2 Restoring (disaster recovery)
+
+The private key must be in the GPG keyring of whoever restores. Import it only for the restore:
+
+```bash
+gpg --import backup-PRIVATE.asc
+/opt/sia/deploy/restore.sh replace /opt/sia/backups/daily/sia-<time>.dump.gpg
+gpg --delete-secret-keys you@example.com     # afterwards: the server must not keep it
+```
+
+`replace` first restores into a separate database and checks it (schema version, tables,
+row-level security, row counts); only then it stops the app, swaps the databases and starts
+the app again. Anything written after the backup is lost. If the whole server is lost: set up a
+new one (section 2), deploy, copy the backup from the off-server copy, then restore as above.
+
+### 6.3 Monthly restore drill
+
+```bash
+/opt/sia/deploy/restore.sh verify /opt/sia/backups/daily/<newest>.dump.gpg
+```
+
+`verify` restores into a scratch database next to production, runs the same checks, prints
+the row counts and deletes the scratch database again; production is not touched. (It needs
+the private key too: import it for the drill and delete it afterwards, as above.)
+
+**Drill log** (append a line each time):
+
+| Date | Backup | Result |
+|---|---|---|
+| 2026-11-05 | local production stack, sample data | `verify` passed (schema ecf4f8eecb83, RLS on 13 tables, 12 companies); `replace` after deleting all companies restored 12 companies, app served them via the restricted role |
