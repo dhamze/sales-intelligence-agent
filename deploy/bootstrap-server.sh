@@ -79,8 +79,13 @@ PasswordAuthentication no
 KbdInteractiveAuthentication no
 PermitRootLogin no
 SSHD
+  # Ubuntu 24.04 starts sshd on demand (ssh.socket), so its runtime directory may not exist
+  # yet; `sshd -t` needs it.
+  install -d -m 0755 /run/sshd
   sshd -t  # refuse to apply a broken configuration
-  systemctl reload ssh
+  # Reload if sshd runs as a service; with socket activation every new connection reads the
+  # configuration anyway, and an inactive service must not fail the script.
+  systemctl try-reload-or-restart ssh
 else
   echo "!! No SSH key found for ${DEPLOY_USER}: root login and passwords LEFT ENABLED." >&2
   echo "!! Add your key to /root/.ssh/authorized_keys and run this script again." >&2
