@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowDown, ArrowUp, Building2, FileUp, Plus, Search, Target, X } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -30,7 +30,9 @@ import {
   type CompanySearch,
   type CompanySort,
 } from "@/features/companies/api";
+import { hasRole, meQuery } from "@/features/auth/api";
 import { CompanyForm } from "@/features/companies/company-form";
+import { SampleDataButton } from "@/features/companies/sample-data-button";
 import { FilterMenu } from "@/features/companies/filter-menu";
 import { EnrichNewButton } from "@/features/enrichment/enrich-new-button";
 import { icpQuery, TIER_DESCRIPTIONS, TIERS } from "@/features/scoring/api";
@@ -56,6 +58,8 @@ function CompaniesPage() {
   const facets = useQuery(facetsQuery);
   const icp = useQuery(icpQuery);
   const scoring = !!icp.data;
+  const { data: me } = useSuspenseQuery(meQuery);
+  const isAdmin = hasRole(me, "admin");
   const rows = companies.data?.pages.flatMap((page) => page.items) ?? [];
   const filtered = hasFilters(search);
 
@@ -180,14 +184,21 @@ function CompaniesPage() {
           <EmptyState
             icon={<Building2 />}
             title="No companies yet"
-            description="Import your account list from a CSV file, or add a company by hand."
+            description={
+              isAdmin
+                ? "Import your account list from a CSV file, add a company by hand, or explore with fictional sample data."
+                : "Import your account list from a CSV file, or add a company by hand."
+            }
             action={
-              <Button asChild>
-                <Link to="/imports">
-                  <FileUp aria-hidden />
-                  Import CSV
-                </Link>
-              </Button>
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button asChild>
+                  <Link to="/imports">
+                    <FileUp aria-hidden />
+                    Import CSV
+                  </Link>
+                </Button>
+                {isAdmin && <SampleDataButton />}
+              </div>
             }
           />
         )

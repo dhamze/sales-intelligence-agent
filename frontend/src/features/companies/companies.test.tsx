@@ -153,4 +153,40 @@ describe("Company page", () => {
     expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
   });
+
+  it("lets admins fill an empty workspace with sample data", async () => {
+    let loaded = false;
+    server.use(
+      handlers.loggedIn("owner"),
+      handlers.facets(),
+      http.get("*/api/companies", () =>
+        HttpResponse.json({ items: loaded ? [company()] : [], next_cursor: null }),
+      ),
+      http.post("*/api/sample-data", () => {
+        loaded = true;
+        return HttpResponse.json(
+          { companies: 12, contacts: 9, ai_profiles: 12, briefs: 12 },
+          { status: 201 },
+        );
+      }),
+    );
+    const { user } = renderApp("/companies");
+
+    await user.click(await screen.findByRole("button", { name: "Load sample data" }));
+
+    expect(await screen.findByText(/Loaded 12 fictional companies with 12/)).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "Initech" })).toBeInTheDocument();
+  });
+
+  it("doesn't offer sample data to members", async () => {
+    server.use(
+      handlers.loggedIn("member"),
+      handlers.facets(),
+      http.get("*/api/companies", () => HttpResponse.json({ items: [], next_cursor: null })),
+    );
+    renderApp("/companies");
+
+    expect(await screen.findByText("No companies yet")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Load sample data" })).not.toBeInTheDocument();
+  });
 });

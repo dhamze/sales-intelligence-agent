@@ -239,6 +239,22 @@ async def _finish(
     log("enrichment_finished", run_id=str(run.id), status=status.value, reason=reason)
 
 
+def fill_values(facts: dict[str, object]) -> dict[str, str]:
+    """Company fields a verified profile can fill in (only ever into EMPTY fields)."""
+
+    def value(name: str) -> str | None:
+        fact = facts.get(name)
+        return str(fact["value"]) if isinstance(fact, dict) and fact.get("value") else None
+
+    candidates = {
+        "description": value("description"),
+        "industry": value("industry"),
+        "city": value("headquarters_city"),
+        "country": value("headquarters_country"),
+    }
+    return {k: v for k, v in candidates.items() if v}
+
+
 async def run_enrichment(
     *,
     organization_id: uuid.UUID,
@@ -338,26 +354,8 @@ async def _store(
     profile.prompt_version = PROMPT_VERSION
     profile.generated_at = datetime.now(UTC)
 
-    facts = verified.facts
-
-    def value(name: str) -> str | None:
-        fact = facts.get(name)
-        return str(fact["value"]) if isinstance(fact, dict) and fact.get("value") else None
-
     filled = await companies.fill_empty_fields(
-        db,
-        organization_id,
-        company_id,
-        {
-            k: v
-            for k, v in {
-                "description": value("description"),
-                "industry": value("industry"),
-                "city": value("headquarters_city"),
-                "country": value("headquarters_country"),
-            }.items()
-            if v
-        },
+        db, organization_id, company_id, fill_values(verified.facts)
     )
     await scoring.rescore_companies(db, organization_id, [company_id])
     logger.info(

@@ -2477,6 +2477,34 @@
         "title": "RunStatus",
         "type": "string"
       },
+      "SampleDataOut": {
+        "properties": {
+          "ai_profiles": {
+            "title": "Ai Profiles",
+            "type": "integer"
+          },
+          "briefs": {
+            "title": "Briefs",
+            "type": "integer"
+          },
+          "companies": {
+            "title": "Companies",
+            "type": "integer"
+          },
+          "contacts": {
+            "title": "Contacts",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "companies",
+          "contacts",
+          "ai_profiles",
+          "briefs"
+        ],
+        "title": "SampleDataOut",
+        "type": "object"
+      },
       "ScoringStatus": {
         "properties": {
           "scored_current": {
@@ -4550,6 +4578,28 @@
         "summary": "Change Member Role",
         "tags": [
           "organizations"
+        ]
+      }
+    },
+    "/sample-data": {
+      "post": {
+        "description": "Fill an EMPTY workspace with fictional sample companies (admins). No AI calls are made:\nAI content, when available, was generated once in advance.",
+        "operationId": "load_sample_data_sample_data_post",
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SampleDataOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Load Sample Data",
+        "tags": [
+          "demo"
         ]
       }
     }

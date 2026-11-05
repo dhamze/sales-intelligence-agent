@@ -8,6 +8,7 @@ citation against the sources, stores the verified brief. Every AI call is logged
 import uuid
 from datetime import UTC, datetime, time
 from decimal import Decimal
+from typing import Any
 
 import structlog
 from sqlalchemy import func, select
@@ -67,6 +68,19 @@ _CRITERION_LABELS = {
 }
 
 
+def score_facts(score: int, breakdown: list[dict[str, Any]]) -> ScoreFacts:
+    """The ICP fit as a brief source (S): the score plus one line per criterion."""
+    return ScoreFacts(
+        score=score,
+        tier=tier_for(score),
+        lines=[
+            f"{_CRITERION_LABELS.get(item['kind'], item['kind'])}: "
+            f"{item['status']} - {item['detail']}"
+            for item in breakdown
+        ],
+    )
+
+
 class BriefDailyLimitError(TooManyRequestsError):
     code = "brief_daily_limit"
 
@@ -112,15 +126,7 @@ async def gather_sources(
     if await db.get(ICPProfile, organization_id) is not None:
         stored = await db.get(CompanyScore, (organization_id, company_id))
         if stored is not None:
-            score = ScoreFacts(
-                score=stored.score,
-                tier=tier_for(stored.score),
-                lines=[
-                    f"{_CRITERION_LABELS.get(item['kind'], item['kind'])}: "
-                    f"{item['status']} - {item['detail']}"
-                    for item in stored.breakdown
-                ],
-            )
+            score = score_facts(stored.score, stored.breakdown)
     contacts = (
         await db.execute(
             select(Contact.title).where(
