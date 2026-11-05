@@ -20,3 +20,4 @@ supersedes the old one.
 | [0012](0012-cited-account-briefs.md) | Cited account briefs and how they are evaluated | Accepted |
 | [0013](0013-abuse-and-cost-protection.md) | Abuse and cost protection for a public deployment | Accepted |
 | [0014](0014-error-monitoring-and-privacy.md) | Error monitoring with Sentry, privacy first | Accepted |
+| [0015](0015-search-under-rls-revisited.md) | Fuzzy search under RLS, revisited for self-hosted PostgreSQL | Accepted |

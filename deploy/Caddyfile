@@ -1,6 +1,12 @@
 # Public entry point. SITE_ADDRESS is the public hostname (e.g. sia-demo.duckdns.org); Caddy then
 # obtains and renews a Let's Encrypt certificate by itself. Locally it defaults to "localhost",
 # served with Caddy's own development certificate.
+{
+	# Clients that send no hostname during the TLS handshake (some scanners and old clients)
+	# get this site's certificate instead of a handshake error.
+	default_sni {$SITE_ADDRESS:localhost}
+}
+
 {$SITE_ADDRESS:localhost} {
 	encode zstd gzip
 
@@ -16,6 +22,8 @@
 		Referrer-Policy "strict-origin-when-cross-origin"
 		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
 		Cross-Origin-Opener-Policy "same-origin"
+		# Other sites can't embed our files (scripts, images, API responses) in their pages.
+		Cross-Origin-Resource-Policy "same-origin"
 		-Server
 	}
 

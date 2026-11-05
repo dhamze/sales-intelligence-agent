@@ -54,3 +54,11 @@ def test_token_hash_is_sha256_and_deterministic() -> None:
 
 def test_email_normalization() -> None:
     assert normalize_email("  Alice.Smith@Example.COM ") == "alice.smith@example.com"
+
+
+def test_unknown_emails_cost_one_verification_like_known_ones() -> None:
+    """Login for an unknown email must take as long as for a real account (no enumeration by
+    timing). That holds only if the dummy hash is computed once, not on every attempt."""
+    from sia.modules.identity import security
+
+    assert security._dummy_hash() is security._dummy_hash()

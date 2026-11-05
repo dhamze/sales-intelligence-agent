@@ -68,6 +68,14 @@ jobs:
       - name: Tests
         run: uv run pytest
 
+      - name: Audit dependencies for known vulnerabilities
+        # Every locked package (runtime and dev), checked at its exact locked version and hash.
+        run: |
+          uv export --frozen --format requirements-txt --all-packages --no-emit-workspace \
+            -o "$RUNNER_TEMP/requirements.txt"
+          uvx --from "pip-audit==2.10.1" pip-audit -r "$RUNNER_TEMP/requirements.txt" \
+            --require-hashes --disable-pip --progress-spinner off
+
   frontend:
     name: Frontend (lint, types, tests, build)
     runs-on: ubuntu-latest
