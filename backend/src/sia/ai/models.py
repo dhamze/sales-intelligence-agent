@@ -1,10 +1,10 @@
 """Log of every AI call: what it cost, how long it took and how it ended. Tenant-owned (RLS)."""
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Enum, ForeignKey, Index, Integer, Numeric, String, func
+from sqlalchemy import Date, Enum, ForeignKey, Index, Integer, Numeric, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from sia.ai.client import Outcome
@@ -42,3 +42,17 @@ class AIGeneration(UUIDPrimaryKeyMixin, Base):
     stop_reason: Mapped[str | None] = mapped_column(String(50))
     error: Mapped[str | None] = mapped_column(String(500))
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+
+class AISpendDay(Base):
+    """Estimated AI spend per day across the whole installation, for the monthly budget.
+
+    Deliberately has no organisation column: it holds only totals, so checking the budget never
+    needs to read other tenants' rows (which RLS forbids anyway).
+    """
+
+    __tablename__ = "ai_spend_days"
+
+    day: Mapped[date] = mapped_column(Date, primary_key=True)
+    calls: Mapped[int] = mapped_column(Integer)
+    cost_usd: Mapped[Decimal] = mapped_column(Numeric(12, 6))

@@ -13,6 +13,7 @@ from enum import StrEnum
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     CheckConstraint,
     Enum,
     ForeignKey,
@@ -21,6 +22,7 @@ from sqlalchemy import (
     LargeBinary,
     String,
     func,
+    text,
     true,
 )
 from sqlalchemy.dialects.postgresql import INET
@@ -56,6 +58,9 @@ class Organization(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "organizations"
 
     name: Mapped[str] = mapped_column(String(NAME_MAX_LENGTH))
+    # May this organisation use AI features (and spend money)? Off for public demo signups;
+    # an operator turns it on with `python -m sia.scripts.ai_access`.
+    ai_enabled: Mapped[bool] = mapped_column(Boolean, server_default=text("true"))
 
 
 class Membership(TimestampMixin, Base):

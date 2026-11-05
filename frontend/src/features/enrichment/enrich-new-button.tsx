@@ -28,7 +28,7 @@ export function EnrichNewButton({ variant = "outline" }: { variant?: "outline" |
   });
 
   const remaining = usage.data?.remaining_today;
-  const disabled = enrich.isPending || usage.data?.configured === false || remaining === 0;
+  const disabled = enrich.isPending || usage.data?.available === false || remaining === 0;
   return (
     <Button
       variant={variant}

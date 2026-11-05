@@ -30,6 +30,7 @@ from sia.modules.health.router import router as health_router
 from sia.modules.identity.router import auth_router, org_router
 from sia.modules.imports.router import router as imports_router
 from sia.modules.insights.router import router as insights_router
+from sia.modules.protection.rate_limit import RateLimitMiddleware
 from sia.modules.scoring.router import router as scoring_router
 
 logger = structlog.get_logger(__name__)
@@ -68,6 +69,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     register_error_handlers(app)
     # Middleware added last runs first: RequestContext wraps everything, so even requests
     # rejected by the origin check get a request ID and an access log line.
+    if settings.rate_limit_enabled:
+        app.add_middleware(RateLimitMiddleware, settings=settings)
     app.add_middleware(BodySizeLimitMiddleware, max_bytes=MAX_REQUEST_BYTES)
     app.add_middleware(OriginCheckMiddleware, allowed_origins=settings.allowed_origins)
     app.add_middleware(RequestContextMiddleware)

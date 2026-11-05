@@ -17,6 +17,8 @@ const BACKEND_ENV: Record<string, string> = {
   ),
   SIA_LLM_PROVIDER: "fake",
   SIA_FETCH_PROVIDER: "fake",
+  // Rate limiting stays on, but the suite signs up many users from one address.
+  SIA_RATE_LIMIT_SIGNUPS_PER_HOUR: "1000",
 };
 
 export default defineConfig({

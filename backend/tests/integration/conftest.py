@@ -53,6 +53,8 @@ def test_settings() -> Settings:
             "llm_provider": "fake",
             "fetch_provider": "fake",
             "anthropic_api_key": None,
+            # Tests send many requests from one address; rate limiting has its own tests.
+            "rate_limit_enabled": False,
         }
     )
 

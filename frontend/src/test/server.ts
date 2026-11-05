@@ -15,7 +15,8 @@ const defaults = [
       daily_limit: 200,
       remaining_today: 200,
       cost_today_usd: "0.0000",
-      configured: true,
+      available: true,
+      unavailable_reason: null,
     }),
   ),
   http.get("*/api/companies/:id/enrichment", () =>
@@ -33,7 +34,8 @@ const defaults = [
       month_by_purpose: [],
       briefs_today: 0,
       brief_daily_limit: 50,
-      configured: true,
+      available: true,
+      unavailable_reason: null,
     }),
   ),
 ];

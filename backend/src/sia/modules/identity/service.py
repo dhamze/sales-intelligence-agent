@@ -172,7 +172,11 @@ async def signup(
         password_hash=await hash_password(data.password.get_secret_value()),
         name=data.name,
     )
-    organization = Organization(id=uuid.uuid4(), name=data.organization_name)
+    organization = Organization(
+        id=uuid.uuid4(),
+        name=data.organization_name,
+        ai_enabled=settings.ai_enabled_for_new_orgs,  # off for public demo signups
+    )
     # Scope the transaction to the new organisation, so RLS permits creating it.
     await set_tenant_context(db, user_id=user.id, organization_id=organization.id)
     # Flush parents before children explicitly: the models have no relationship() links,

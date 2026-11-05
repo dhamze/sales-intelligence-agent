@@ -34,9 +34,7 @@ from sia.modules.enrichment.extraction import (
 from sia.modules.enrichment.fetcher import FetchError, PageText
 from sia.modules.enrichment.models import CompanyProfile, EnrichmentRun, RunStatus, WebPage
 from sia.modules.enrichment.providers import (
-    EnrichmentUnavailableError,
     SiteReader,
-    llm_configured,
 )
 from sia.modules.enrichment.schemas import (
     CompanyEnrichmentOut,
@@ -45,6 +43,7 @@ from sia.modules.enrichment.schemas import (
     EnrichmentUsageOut,
 )
 from sia.modules.identity.service import TenantContext
+from sia.modules.protection.ai_access import blocked_in_worker, require_ai, unavailable_reason
 from sia.modules.scoring import service as scoring
 from sia.worker.runtime import tenant_session
 
@@ -88,12 +87,14 @@ async def usage(db: AsyncSession, tenant: TenantContext, settings: Settings) -> 
         )
     )
     used = used or 0
+    reason = await unavailable_reason(db, tenant.organization_id, settings)
     return EnrichmentUsageOut(
         used_today=used,
         daily_limit=settings.enrichment_daily_limit,
         remaining_today=max(settings.enrichment_daily_limit - used, 0),
         cost_today_usd=str(Decimal(cost or 0).quantize(Decimal("0.0001"))),
-        configured=llm_configured(settings),
+        available=reason is None,
+        unavailable_reason=reason,
     )
 
 
@@ -129,8 +130,7 @@ async def request_enrichment(
     *,
     not_yet_enriched: bool = False,
 ) -> list[EnrichmentRunOut]:
-    if not llm_configured(settings):
-        raise EnrichmentUnavailableError()
+    await require_ai(db, tenant.organization_id, settings)
 
     wanted = list(dict.fromkeys(company_ids))  # de-duplicate, keep order
     known = await companies.company_names(db, tenant, set(wanted))
@@ -212,13 +212,13 @@ async def company_enrichment(
 # --- Worker side ---------------------------------------------------------------------------------
 
 
-def _log_generation(
+async def _log_generation(
     db: AsyncSession,
     organization_id: uuid.UUID,
     company_id: uuid.UUID,
     result: StructuredResult[ExtractedProfile],
 ) -> None:
-    log_generation(
+    await log_generation(
         db,
         organization_id=organization_id,
         purpose=PURPOSE,
@@ -247,6 +247,7 @@ async def run_enrichment(
     reader: SiteReader,
     llm: LLMClient,
     effort: Effort = "low",
+    budget: Decimal | None = None,
 ) -> None:
     async with tenant_session(organization_id=organization_id) as db:
         run = await db.get(EnrichmentRun, run_id)
@@ -272,13 +273,17 @@ async def run_enrichment(
                 await _finish(db, run, RunStatus.FAILED, f"fetch_{exc.reason.value}")
                 return
 
+            blocked = await blocked_in_worker(db, organization_id, budget)
+            if blocked is not None:
+                await _finish(db, run, RunStatus.FAILED, f"ai_{blocked}")
+                return
             result = await llm.extract(
                 system=SYSTEM_PROMPT,
                 content=build_prompt(name, pages),
                 output_type=ExtractedProfile,
                 effort=effort,
             )
-            _log_generation(db, organization_id, company_id, result)
+            await _log_generation(db, organization_id, company_id, result)
             if result.outcome is not Outcome.SUCCESS or result.output is None:
                 await _finish(db, run, RunStatus.FAILED, f"llm_{result.outcome.value}")
                 return

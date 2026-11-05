@@ -236,8 +236,9 @@ async def test_unavailable_without_an_api_key(alice: Actor, test_settings: Setti
         usage = (await client.get("/ai/usage")).json()
 
     assert response.status_code == 503
-    assert response.json()["error"]["code"] == "briefs_unavailable"
-    assert usage["configured"] is False
+    assert response.json()["error"]["code"] == "ai_unavailable"
+    assert response.json()["error"]["details"] == [{"reason": "not_configured"}]
+    assert (usage["available"], usage["unavailable_reason"]) == (False, "not_configured")
 
 
 async def test_ai_usage_sums_cost_by_purpose(alice: Actor, worker_runtime: None) -> None:

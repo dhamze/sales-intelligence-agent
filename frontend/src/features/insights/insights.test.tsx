@@ -179,6 +179,61 @@ describe("Account brief", () => {
   });
 });
 
+describe("AI availability", () => {
+  it("explains when AI isn't enabled for this workspace", async () => {
+    companyPage({ latest_run: null, brief: null });
+    server.use(
+      http.get("*/api/ai/usage", () =>
+        HttpResponse.json({
+          cost_today_usd: "0.0000",
+          cost_month_usd: "0.0000",
+          month_by_purpose: [],
+          briefs_today: 0,
+          brief_daily_limit: 50,
+          available: false,
+          unavailable_reason: "disabled_for_org",
+        }),
+      ),
+    );
+    renderApp(`/companies/${ID}`);
+    const brief = await card();
+
+    expect(await brief.findByText(/aren't enabled for this workspace/)).toBeInTheDocument();
+    expect(brief.getByRole("button", { name: "Generate brief" })).toBeDisabled();
+  });
+
+  it("explains a paused AI budget when the server refuses", async () => {
+    companyPage({ latest_run: null, brief: null });
+    server.use(
+      http.post(`*/api/companies/${ID}/brief`, () =>
+        HttpResponse.json(
+          {
+            error: {
+              code: "ai_unavailable",
+              message: "paused",
+              details: [{ reason: "budget_exhausted" }],
+            },
+          },
+          { status: 503 },
+        ),
+      ),
+    );
+    const { user } = renderApp(`/companies/${ID}`);
+    const brief = await card();
+
+    await user.click(await brief.findByRole("button", { name: "Generate brief" }));
+    expect(await screen.findByText(/this month's AI budget has been used up/)).toBeInTheDocument();
+  });
+
+  it("explains runs the worker stopped because of the budget", async () => {
+    companyPage({ latest_run: run("failed", "ai_budget_exhausted"), brief: null });
+    renderApp(`/companies/${ID}`);
+    const brief = await card();
+
+    expect(await brief.findByText(/AI budget has been used up/)).toBeInTheDocument();
+  });
+});
+
 describe("AI usage (settings)", () => {
   it("shows spend today, this month and by feature", async () => {
     server.use(
@@ -195,7 +250,8 @@ describe("AI usage (settings)", () => {
           ],
           briefs_today: 2,
           brief_daily_limit: 50,
-          configured: true,
+          available: true,
+          unavailable_reason: null,
         }),
       ),
     );

@@ -18,3 +18,4 @@ supersedes the old one.
 | [0010](0010-grounded-extraction.md) | Grounded AI extraction with verified evidence | Accepted |
 | [0011](0011-explainable-icp-scoring.md) | Explainable rules-based ICP scoring | Accepted |
 | [0012](0012-cited-account-briefs.md) | Cited account briefs and how they are evaluated | Accepted |
+| [0013](0013-abuse-and-cost-protection.md) | Abuse and cost protection for a public deployment | Accepted |

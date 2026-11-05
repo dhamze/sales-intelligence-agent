@@ -10,6 +10,7 @@ from sia.modules.enrichment import models as enrichment_models
 from sia.modules.identity import models as identity_models
 from sia.modules.imports import models as imports_models
 from sia.modules.insights import models as insights_models
+from sia.modules.protection import models as protection_models
 from sia.modules.scoring import models as scoring_models
 
 __all__ = [
@@ -20,5 +21,6 @@ __all__ = [
     "identity_models",
     "imports_models",
     "insights_models",
+    "protection_models",
     "scoring_models",
 ]

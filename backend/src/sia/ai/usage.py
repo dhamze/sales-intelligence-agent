@@ -1,15 +1,17 @@
 """Recording AI calls (every one, including failures) so spend is always accounted for."""
 
 import uuid
+from datetime import UTC, datetime
 from typing import Any
 
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from sia.ai.client import StructuredResult
-from sia.ai.models import AIGeneration
+from sia.ai.models import AIGeneration, AISpendDay
 
 
-def log_generation(
+async def log_generation(
     db: AsyncSession,
     *,
     organization_id: uuid.UUID,
@@ -18,7 +20,8 @@ def log_generation(
     prompt_version: str,
     result: StructuredResult[Any],
 ) -> None:
-    """Add the call to `ai_generations` (in the caller's transaction)."""
+    """Record the call in `ai_generations` and add its cost to today's installation-wide total
+    (both in the caller's transaction)."""
     db.add(
         AIGeneration(
             organization_id=organization_id,
@@ -36,5 +39,17 @@ def log_generation(
             request_id=result.request_id,
             stop_reason=result.stop_reason,
             error=(result.error or "")[:500] or None,
+        )
+    )
+    insert = pg_insert(AISpendDay).values(
+        day=datetime.now(UTC).date(), calls=1, cost_usd=result.cost_usd
+    )
+    await db.execute(
+        insert.on_conflict_do_update(
+            index_elements=["day"],
+            set_={
+                "calls": AISpendDay.calls + 1,
+                "cost_usd": AISpendDay.cost_usd + insert.excluded.cost_usd,
+            },
         )
     )

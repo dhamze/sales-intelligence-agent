@@ -4,6 +4,7 @@ All settings are validated at startup: a missing or malformed value stops the ap
 with a clear error, instead of failing later in some unrelated code path.
 """
 
+from decimal import Decimal
 from functools import lru_cache
 from typing import Literal, Self
 
@@ -74,6 +75,28 @@ class Settings(BaseSettings):
     brief_model: str = Field(default="claude-opus-5-5", validation_alias="SIA_BRIEF_MODEL")
     brief_effort: Effort = Field(default="medium", validation_alias="SIA_BRIEF_EFFORT")
     brief_daily_limit: int = Field(default=50, ge=0, validation_alias="SIA_BRIEF_DAILY_LIMIT")
+
+    # --- Cost and abuse protection ---
+    # Estimated AI spend allowed per calendar month (UTC) across ALL organisations; AI features
+    # pause when it is reached. None = no limit (development).
+    ai_monthly_budget_usd: Decimal | None = Field(
+        default=None, ge=0, validation_alias="SIA_AI_MONTHLY_BUDGET_USD"
+    )
+    # Whether organisations created by signup may use AI. The public demo sets this to false.
+    ai_enabled_for_new_orgs: bool = Field(
+        default=True, validation_alias="SIA_AI_ENABLED_FOR_NEW_ORGS"
+    )
+    rate_limit_enabled: bool = Field(default=True, validation_alias="SIA_RATE_LIMIT_ENABLED")
+    # Per client IP. Generous for normal use (the UI polls every 2 s while jobs run).
+    rate_limit_requests_per_minute: int = Field(
+        default=600, ge=1, validation_alias="SIA_RATE_LIMIT_REQUESTS_PER_MINUTE"
+    )
+    rate_limit_writes_per_minute: int = Field(
+        default=60, ge=1, validation_alias="SIA_RATE_LIMIT_WRITES_PER_MINUTE"
+    )
+    rate_limit_signups_per_hour: int = Field(
+        default=5, ge=1, validation_alias="SIA_RATE_LIMIT_SIGNUPS_PER_HOUR"
+    )
 
     # --- Authentication & browser security ---
     session_idle_timeout_hours: int = Field(

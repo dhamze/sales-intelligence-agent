@@ -20,6 +20,7 @@ async def enrich_company(organization_id: str, company_id: str, run_id: str) -> 
             reader=make_site_reader(settings),
             llm=llm,
             effort=settings.enrichment_effort,
+            budget=settings.ai_monthly_budget_usd,
         )
     finally:
         close = getattr(llm, "close", None)

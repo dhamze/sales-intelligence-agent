@@ -9,6 +9,7 @@ import {
   CardTitle,
   Skeleton,
 } from "@/components/ui/primitives";
+import { AI_UNAVAILABLE } from "@/lib/ai";
 import { errorMessage } from "@/lib/api/client";
 import { formatNumber } from "@/lib/utils";
 
@@ -37,7 +38,9 @@ export function AiUsageCard() {
           <Alert tone="danger">{errorMessage(usage.error)}</Alert>
         ) : (
           <div className="grid gap-4">
-            {!usage.data.configured && <Alert>AI isn&apos;t configured on this server yet.</Alert>}
+            {usage.data.unavailable_reason && (
+              <Alert>{AI_UNAVAILABLE[usage.data.unavailable_reason]}</Alert>
+            )}
             <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
               <Stat label="Today" value={usd(usage.data.cost_today_usd)} />
               <Stat label="This month" value={usd(usage.data.cost_month_usd)} />

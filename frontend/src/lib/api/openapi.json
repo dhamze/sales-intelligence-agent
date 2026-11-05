@@ -4,6 +4,10 @@
       "AIUsageOut": {
         "description": "AI spend of the organisation (estimates; the Anthropic bill is authoritative).",
         "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
           "brief_daily_limit": {
             "title": "Brief Daily Limit",
             "type": "integer"
@@ -11,10 +15,6 @@
           "briefs_today": {
             "title": "Briefs Today",
             "type": "integer"
-          },
-          "configured": {
-            "title": "Configured",
-            "type": "boolean"
           },
           "cost_month_usd": {
             "title": "Cost Month Usd",
@@ -30,6 +30,22 @@
             },
             "title": "Month By Purpose",
             "type": "array"
+          },
+          "unavailable_reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "not_configured",
+                  "disabled_for_org",
+                  "budget_exhausted"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unavailable Reason"
           }
         },
         "required": [
@@ -38,7 +54,8 @@
           "month_by_purpose",
           "briefs_today",
           "brief_daily_limit",
-          "configured"
+          "available",
+          "unavailable_reason"
         ],
         "title": "AIUsageOut",
         "type": "object"
@@ -1473,8 +1490,8 @@
       },
       "EnrichmentUsageOut": {
         "properties": {
-          "configured": {
-            "title": "Configured",
+          "available": {
+            "title": "Available",
             "type": "boolean"
           },
           "cost_today_usd": {
@@ -1489,6 +1506,22 @@
             "title": "Remaining Today",
             "type": "integer"
           },
+          "unavailable_reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "not_configured",
+                  "disabled_for_org",
+                  "budget_exhausted"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unavailable Reason"
+          },
           "used_today": {
             "title": "Used Today",
             "type": "integer"
@@ -1499,7 +1532,8 @@
           "daily_limit",
           "remaining_today",
           "cost_today_usd",
-          "configured"
+          "available",
+          "unavailable_reason"
         ],
         "title": "EnrichmentUsageOut",
         "type": "object"

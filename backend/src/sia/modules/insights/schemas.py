@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict
 
 from sia.modules.enrichment.models import RunStatus
 from sia.modules.insights.briefs import SourceKind
+from sia.modules.protection.ai_access import UnavailableReason
 
 
 class BriefRunOut(BaseModel):
@@ -79,4 +80,5 @@ class AIUsageOut(BaseModel):
     month_by_purpose: list[PurposeUsage]
     briefs_today: int
     brief_daily_limit: int
-    configured: bool
+    available: bool  # may this workspace use AI right now?
+    unavailable_reason: UnavailableReason | None

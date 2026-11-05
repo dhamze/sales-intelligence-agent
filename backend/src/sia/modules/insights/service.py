@@ -22,7 +22,6 @@ from sia.core.jobs import enqueue
 from sia.modules.companies.models import Company
 from sia.modules.contacts.models import Contact
 from sia.modules.enrichment.models import RunStatus, WebPage
-from sia.modules.enrichment.providers import llm_configured
 from sia.modules.identity.service import TenantContext
 from sia.modules.insights.briefs import (
     PROMPT_VERSION,
@@ -38,7 +37,6 @@ from sia.modules.insights.briefs import (
     verify,
 )
 from sia.modules.insights.models import AccountBrief, BriefRun
-from sia.modules.insights.providers import BriefsUnavailableError
 from sia.modules.insights.schemas import (
     AIUsageOut,
     BriefOut,
@@ -46,6 +44,7 @@ from sia.modules.insights.schemas import (
     CompanyBriefOut,
     PurposeUsage,
 )
+from sia.modules.protection.ai_access import blocked_in_worker, require_ai, unavailable_reason
 from sia.modules.scoring.engine import tier_for
 from sia.modules.scoring.models import CompanyScore, ICPProfile
 from sia.worker.runtime import tenant_session
@@ -165,8 +164,7 @@ async def _briefs_today(db: AsyncSession, organization_id: uuid.UUID) -> int:
 async def request_brief(
     db: AsyncSession, tenant: TenantContext, settings: Settings, company_id: uuid.UUID
 ) -> BriefRunOut:
-    if not llm_configured(settings):
-        raise BriefsUnavailableError()
+    await require_ai(db, tenant.organization_id, settings)
     org = tenant.organization_id
     exists = await db.scalar(
         select(Company.id).where(Company.organization_id == org, Company.id == company_id)
@@ -267,6 +265,7 @@ async def ai_usage(db: AsyncSession, tenant: TenantContext, settings: Settings) 
             AIGeneration.organization_id == org, AIGeneration.created_at >= today
         )
     )
+    reason = await unavailable_reason(db, org, settings)
     return AIUsageOut(
         cost_today_usd=_money(cost_today),
         cost_month_usd=_money(sum((Decimal(str(cost)) for _, _, cost in rows), Decimal(0))),
@@ -276,7 +275,8 @@ async def ai_usage(db: AsyncSession, tenant: TenantContext, settings: Settings) 
         ],
         briefs_today=await _briefs_today(db, org),
         brief_daily_limit=settings.brief_daily_limit,
-        configured=llm_configured(settings),
+        available=reason is None,
+        unavailable_reason=reason,
     )
 
 
@@ -301,6 +301,7 @@ async def run_brief(
     run_id: uuid.UUID,
     llm: LLMClient,
     effort: Effort = "medium",
+    budget: Decimal | None = None,
 ) -> None:
     async with tenant_session(organization_id=organization_id) as db:
         run = await db.get(BriefRun, run_id)
@@ -316,6 +317,10 @@ async def run_brief(
                 await _finish(db, run, RunStatus.FAILED, "company_missing")
                 return
             name, sources = gathered
+            blocked = await blocked_in_worker(db, organization_id, budget)
+            if blocked is not None:
+                await _finish(db, run, RunStatus.FAILED, f"ai_{blocked}")
+                return
             result = await llm.extract(
                 system=SYSTEM_PROMPT,
                 content=build_prompt(name, sources),
@@ -323,7 +328,7 @@ async def run_brief(
                 effort=effort,
                 max_tokens=MAX_OUTPUT_TOKENS,
             )
-            log_generation(
+            await log_generation(
                 db,
                 organization_id=organization_id,
                 purpose=PURPOSE,

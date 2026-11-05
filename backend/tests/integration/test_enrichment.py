@@ -220,8 +220,9 @@ async def test_unconfigured_ai_gives_a_clear_503(test_settings: Settings, alice:
         usage = (await client.get("/enrichment/usage")).json()
 
     assert response.status_code == 503
-    assert response.json()["error"]["code"] == "enrichment_unavailable"
-    assert usage["configured"] is False
+    assert response.json()["error"]["code"] == "ai_unavailable"
+    assert response.json()["error"]["details"] == [{"reason": "not_configured"}]
+    assert (usage["available"], usage["unavailable_reason"]) == (False, "not_configured")
 
 
 async def test_bulk_enrich_not_yet_enriched_companies(alice: Actor) -> None:

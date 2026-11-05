@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/primitives";
 import { companyKeys } from "@/features/companies/api";
 import { ApiError, errorMessage, type Schemas } from "@/lib/api/client";
+import { AI_RUN_FAILURES, AI_UNAVAILABLE, aiUnavailableMessage } from "@/lib/ai";
 import { formatDateTime } from "@/lib/utils";
 
 import {
@@ -57,10 +58,7 @@ export function enrichErrorMessage(error: unknown): string {
   if (error instanceof ApiError && error.code === "enrichment_daily_limit") {
     return "Today's enrichment limit has been reached. It resets at midnight (UTC).";
   }
-  if (error instanceof ApiError && error.code === "enrichment_unavailable") {
-    return "AI enrichment isn't configured on this server yet.";
-  }
-  return errorMessage(error);
+  return aiUnavailableMessage(error) ?? errorMessage(error);
 }
 
 /** The company's AI-extracted profile: every fact shown with the quote that supports it. */
@@ -83,7 +81,8 @@ export function AiProfileCard({ companyId }: { companyId: string }) {
   const run = data?.latest_run ?? null;
   const profile = data?.profile ?? null;
   const active = isActive(run);
-  const configured = usage.data?.configured ?? true;
+  const available = usage.data?.available ?? true;
+  const reason = usage.data?.unavailable_reason;
 
   // When a run finishes, the company record may have new (filled-in) values: refresh it once.
   const finishedRunId = run?.status === "succeeded" ? run.id : undefined;
@@ -109,7 +108,7 @@ export function AiProfileCard({ companyId }: { companyId: string }) {
         <Button
           variant="outline"
           size="sm"
-          disabled={active || start.isPending || !configured}
+          disabled={active || start.isPending || !available}
           onClick={() => {
             start.mutate();
           }}
@@ -125,7 +124,7 @@ export function AiProfileCard({ companyId }: { companyId: string }) {
           <Alert tone="danger">{errorMessage(enrichment.error)}</Alert>
         ) : (
           <div className="grid gap-4">
-            {!configured && <Alert>AI enrichment isn't configured on this server yet.</Alert>}
+            {!available && reason && <Alert>{AI_UNAVAILABLE[reason]}</Alert>}
             {active && (
               <Alert className="flex items-center gap-2">
                 <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -135,7 +134,9 @@ export function AiProfileCard({ companyId }: { companyId: string }) {
             {run?.status === "failed" && (
               <Alert tone="danger">
                 Last attempt failed:{" "}
-                {FAILURE_MESSAGES[run.failure_reason ?? ""] ?? "Unknown error."}
+                {FAILURE_MESSAGES[run.failure_reason ?? ""] ??
+                  AI_RUN_FAILURES[run.failure_reason ?? ""] ??
+                  "Unknown error."}
               </Alert>
             )}
             {profile ? (

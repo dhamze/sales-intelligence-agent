@@ -7,6 +7,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 from sia.modules.enrichment.models import RunStatus
+from sia.modules.protection.ai_access import UnavailableReason
 
 
 class EnrichmentRunOut(BaseModel):
@@ -52,4 +53,5 @@ class EnrichmentUsageOut(BaseModel):
     daily_limit: int
     remaining_today: int
     cost_today_usd: str
-    configured: bool
+    available: bool  # may this workspace use AI right now?
+    unavailable_reason: UnavailableReason | None

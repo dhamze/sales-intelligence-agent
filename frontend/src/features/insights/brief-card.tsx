@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/primitives";
 import { isActive } from "@/features/enrichment/api";
 import { ApiError, errorMessage } from "@/lib/api/client";
+import { AI_RUN_FAILURES, AI_UNAVAILABLE, aiUnavailableMessage } from "@/lib/ai";
 import { formatDateTime } from "@/lib/utils";
 
 import {
@@ -41,10 +42,7 @@ function requestErrorMessage(error: unknown): string {
   if (error instanceof ApiError && error.code === "brief_daily_limit") {
     return "Today's brief limit has been reached. It resets at midnight (UTC).";
   }
-  if (error instanceof ApiError && error.code === "briefs_unavailable") {
-    return "AI briefs aren't configured on this server yet.";
-  }
-  return errorMessage(error);
+  return aiUnavailableMessage(error) ?? errorMessage(error);
 }
 
 /** A short, cited account brief and a suggested outreach angle. */
@@ -67,7 +65,8 @@ export function BriefCard({ companyId }: { companyId: string }) {
   const run = data.data?.latest_run ?? null;
   const brief = data.data?.brief ?? null;
   const active = isActive(run);
-  const configured = usage.data?.configured ?? true;
+  const available = usage.data?.available ?? true;
+  const reason = usage.data?.unavailable_reason;
 
   // A finished run has a cost: refresh the usage counters once.
   const finishedRunId = run && !active ? run.id : undefined;
@@ -90,7 +89,7 @@ export function BriefCard({ companyId }: { companyId: string }) {
         <Button
           variant={brief ? "outline" : "default"}
           size="sm"
-          disabled={active || generate.isPending || !configured}
+          disabled={active || generate.isPending || !available}
           onClick={() => {
             generate.mutate();
           }}
@@ -106,7 +105,7 @@ export function BriefCard({ companyId }: { companyId: string }) {
           <Alert tone="danger">{errorMessage(data.error)}</Alert>
         ) : (
           <div className="grid gap-4">
-            {!configured && <Alert>AI briefs aren&apos;t configured on this server yet.</Alert>}
+            {!available && reason && <Alert>{AI_UNAVAILABLE[reason]}</Alert>}
             {active && (
               <Alert className="flex items-center gap-2">
                 <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -115,7 +114,10 @@ export function BriefCard({ companyId }: { companyId: string }) {
             )}
             {run?.status === "failed" && (
               <Alert tone="danger">
-                Last attempt failed: {BRIEF_FAILURES[run.failure_reason ?? ""] ?? "Unknown error."}
+                Last attempt failed:{" "}
+                {BRIEF_FAILURES[run.failure_reason ?? ""] ??
+                  AI_RUN_FAILURES[run.failure_reason ?? ""] ??
+                  "Unknown error."}
               </Alert>
             )}
             {brief ? (

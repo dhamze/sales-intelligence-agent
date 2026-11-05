@@ -65,7 +65,8 @@ function mockApi(enrichment: Enrichment, usage?: Record<string, unknown>): void 
           daily_limit: 200,
           remaining_today: 197,
           cost_today_usd: "0.1500",
-          configured: true,
+          available: true,
+          unavailable_reason: null,
           ...usage,
         }),
       ),
@@ -143,11 +144,14 @@ describe("AI profile", () => {
   });
 
   it("is disabled with an explanation when AI isn't configured", async () => {
-    mockApi({ latest_run: null, profile: null }, { configured: false });
+    mockApi(
+      { latest_run: null, profile: null },
+      { available: false, unavailable_reason: "not_configured" },
+    );
     renderApp(`/companies/${ID}`);
     const profile = within(await card());
 
-    expect(await profile.findByText(/isn't configured on this server/)).toBeInTheDocument();
+    expect(await profile.findByText(/aren't configured on this server/)).toBeInTheDocument();
     expect(profile.getByRole("button", { name: "Enrich" })).toBeDisabled();
   });
 });

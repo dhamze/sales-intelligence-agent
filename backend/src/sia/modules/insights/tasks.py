@@ -19,6 +19,7 @@ async def generate_brief(organization_id: str, company_id: str, run_id: str) -> 
             run_id=uuid.UUID(run_id),
             llm=llm,
             effort=settings.brief_effort,
+            budget=settings.ai_monthly_budget_usd,
         )
     finally:
         close = getattr(llm, "close", None)

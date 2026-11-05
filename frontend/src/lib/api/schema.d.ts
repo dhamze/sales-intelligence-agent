@@ -552,18 +552,20 @@ export interface components {
          * @description AI spend of the organisation (estimates; the Anthropic bill is authoritative).
          */
         AIUsageOut: {
+            /** Available */
+            available: boolean;
             /** Brief Daily Limit */
             brief_daily_limit: number;
             /** Briefs Today */
             briefs_today: number;
-            /** Configured */
-            configured: boolean;
             /** Cost Month Usd */
             cost_month_usd: string;
             /** Cost Today Usd */
             cost_today_usd: string;
             /** Month By Purpose */
             month_by_purpose: components["schemas"]["PurposeUsage"][];
+            /** Unavailable Reason */
+            unavailable_reason: ("not_configured" | "disabled_for_org" | "budget_exhausted") | null;
         };
         /** Body_upload_imports_post */
         Body_upload_imports_post: {
@@ -1020,14 +1022,16 @@ export interface components {
         };
         /** EnrichmentUsageOut */
         EnrichmentUsageOut: {
-            /** Configured */
-            configured: boolean;
+            /** Available */
+            available: boolean;
             /** Cost Today Usd */
             cost_today_usd: string;
             /** Daily Limit */
             daily_limit: number;
             /** Remaining Today */
             remaining_today: number;
+            /** Unavailable Reason */
+            unavailable_reason: ("not_configured" | "disabled_for_org" | "budget_exhausted") | null;
             /** Used Today */
             used_today: number;
         };
