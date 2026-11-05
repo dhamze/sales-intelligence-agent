@@ -47,15 +47,18 @@ apt-get update -q
 apt-get install -yq docker-ce docker-ce-cli containerd.io docker-buildx-plugin \
   docker-compose-plugin
 mkdir -p /etc/docker
-cat > /etc/docker/daemon.json <<'JSON'
-{
+daemon_config='{
   "log-driver": "local",
   "log-opts": { "max-size": "20m", "max-file": "5" },
   "live-restore": true
-}
-JSON
+}'
 systemctl enable --now docker
-systemctl restart docker
+# Restart Docker only when its settings change: a restart is unnecessary on re-runs, and it
+# would cut off this script if it is being run from inside a container.
+if [[ "$(cat /etc/docker/daemon.json 2> /dev/null)" != "${daemon_config}" ]]; then
+  printf '%s\n' "${daemon_config}" > /etc/docker/daemon.json
+  systemctl restart docker
+fi
 
 echo "==> Deploy user '${DEPLOY_USER}'"
 if ! id "${DEPLOY_USER}" &> /dev/null; then
